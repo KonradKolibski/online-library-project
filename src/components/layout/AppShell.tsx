@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Library, Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "./BottomNav";
 
@@ -14,10 +14,13 @@ export function AppShell({ children, onOpenSettings }: AppShellProps) {
       <header className="sticky top-0 z-30 backdrop-blur-md bg-background/70 border-b border-border/60">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-primary text-primary-foreground grid place-items-center shadow-sm">
-              <Library className="h-5 w-5" />
-            </div>
-            <span className="font-semibold text-lg tracking-tight">My Library</span>
+            <img
+              src="/logo.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 rounded-2xl shadow-sm"
+            />
+            <span className="font-display font-semibold text-lg tracking-tight">capy.books</span>
           </div>
           {onOpenSettings && (
             <Button variant="ghost" size="icon" onClick={onOpenSettings} aria-label="Settings">
