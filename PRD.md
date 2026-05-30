@@ -71,7 +71,32 @@ Items explicitly out of scope for v1 but planned for later versions:
 - **Desktop-first polish** — v1 is already responsive, but a future pass will refine the desktop experience (keyboard shortcuts, denser layouts, multi-column views).
 - **Barcode scanning** — let the user scan a book's ISBN barcode with their phone camera; the app looks up the book via an external metadata API (e.g. Google Books, Open Library) and adds it to the library automatically with cover, title, author pre-filled.
 - **Reading streaks** — a Duolingo-style streak module that rewards the user for logging reading activity every day. Includes streak counters, daily goals, and visual feedback to encourage consistency.
+- **User statistics** — a dedicated stats view surfacing reading data through clean, minimalistic data visualizations:
+  - *Progress bars* for overall library breakdown (books read vs. in-progress vs. to-read, pages/percentage completed per book).
+  - *Bar and line charts* for reading pace over time (books finished per month, pages read per week).
+  - *Category and tag distribution* shown as a minimal bar chart or proportional chip cloud.
+  - *Rating distribution* as a compact histogram (how many books per star tier).
+  - *Personal milestones* — books read this year, average rating, most-read author, etc.
+  - All visuals follow the same pastel purple design language as the rest of the app: thin lines, soft fills, no chartjunk.
 - *(Likely also worth considering later: import from Goodreads/Amazon, sharing a library publicly, recommendations, multiple bookshelves/collections per user.)*
+
+## 5. Future-future ideas (loose notes — not committed)
+
+These are rougher, more ambitious directions. They aren't decisions yet — just things to keep on the radar. Not all of them will necessarily make it into the product.
+
+- **FOMO-driven engagement loop, Duolingo-style.** The app's emotional core could lean on the same pull mechanics Duolingo uses — daily nudges, streak anxiety, "don't break the chain" feedback. The whole UX would be tuned around bringing the user back every day.
+- **Rich daily reading check-in.** Streaks for every day of reading. When the user marks a day as "read," they log:
+  - Which book they read.
+  - How they felt while reading it (happy, moved, motivated, etc.).
+  - The page they stopped on.
+  - How long they read for.
+  All of this captured through icons and interactive elements rather than plain form fields.
+- **Milestone summaries with delight.** When a user finishes a book or hits a milestone (7-day streak, 30-day streak, etc.), show a celebratory summary with simple charts: emotional arc across the read, average pages per day, average time per page, etc. Presented with vector illustrations, smooth animations, and micro-interactions — designed to trigger a dopamine/endorphin hit. No complicated charts; everything stays clean and stylized.
+- **Haptic feedback** throughout the app, similar to Duolingo, to make every interaction feel tactile and satisfying.
+- **Mascot.** Consider building a Duolingo-style mascot for the app — in our case maybe a **capybara**. Used across the app's surfaces (empty states, milestones, nudges, streak screens). Ideally a low-poly 3D look with subtle animations.
+- **Optional quote capture in the daily check-in.** When the user logs a reading day (alongside mood, pages read, time, etc.), give them an optional field to save **quotes from the book** — the quote text plus the page number. Builds up a personal "commonplace book" inside the app over time.
+- **Series-themed mascot variants + unlockable skins.** Later, once the capybara mascot exists, tie its appearance to popular series the user is actively reading. For example, while reading Harry Potter the default glasses-and-book capybara is swapped for a wizard-hat-and-wand capybara. These themed variants are auto-activated based on the book currently in progress. A natural extension: **unlock these skins permanently** as rewards — finish the whole Harry Potter series and you keep the wizard capybara as a selectable skin in settings. Once unlocked, the user can set it as their default, and every surface in the app that shows the mascot uses that skin instead of the standard one.
+- **"Discover" module — bubble-tree mood search.** Replace the standard search experience with an animated bubble interface. The top level shows mood/intent bubbles like *"I want a tear-jerker," "I want to get motivated," "I want a laugh," "I want to be scared," "I want an epic journey."* Tapping one zooms into that bubble — the others fade away — and new sub-category bubbles fly in around it ("exercise," "success," "business," "life," "love," etc.). Based on the path the user clicks through, the app then surfaces book recommendations as **full-screen swipeable cards à la Tinder**: swipe right to add to "Want to read," swipe left to dismiss. Over time, the recommendation engine learns from the user's past mood logs — which books actually scared them, made them happy, motivated them — and personalizes the suggestions accordingly.
 
 ## Open questions
 
