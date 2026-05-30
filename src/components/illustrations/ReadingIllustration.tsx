@@ -3,13 +3,13 @@ interface Props {
 }
 
 /**
- * "Book lover" illustration from Storyset, served from
- * public/illustrations/book-lover.svg.
+ * Capybara reading books illustration, served from
+ * public/illustrations/capybara-reading-books.svg.
  */
 export function ReadingIllustration({ className }: Props) {
   return (
     <img
-      src="/illustrations/book-lover.svg"
+      src="/illustrations/capybara-reading-books.svg"
       alt=""
       aria-hidden="true"
       className={className}
