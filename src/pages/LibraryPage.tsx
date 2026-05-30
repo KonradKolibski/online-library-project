@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useLibrary } from "@/store/library";
 import { useDebounced } from "@/hooks/useDebounced";
 import type { Book } from "@/types/book";
@@ -15,6 +15,10 @@ import { BookForm } from "@/components/book/BookForm";
 import { BookDetail } from "@/components/book/BookDetail";
 import { SearchBar } from "@/components/search/SearchBar";
 import { FilterChips } from "@/components/search/FilterChips";
+import { SortSelector, type SortOption } from "@/components/search/SortSelector";
+import { sortBooks } from "@/lib/sort";
+import { ReadingIllustration } from "@/components/illustrations/ReadingIllustration";
+import { BookshelfIllustration } from "@/components/illustrations/BookshelfIllustration";
 
 export function LibraryPage() {
   const { state, addBook, allTags } = useLibrary();
@@ -22,12 +26,13 @@ export function LibraryPage() {
   const debounced = useDebounced(query, 200);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [tag, setTag] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
 
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
-    return state.books.filter((b) => {
+    const results = state.books.filter((b) => {
       if (categoryId && b.categoryId !== categoryId) return false;
       if (tag && !b.tags.includes(tag)) return false;
       if (q) {
@@ -36,7 +41,8 @@ export function LibraryPage() {
       }
       return true;
     });
-  }, [state.books, debounced, categoryId, tag]);
+    return sortBooks(results, sortBy);
+  }, [state.books, debounced, categoryId, tag, sortBy]);
 
   const selectedLive = selected
     ? state.books.find((b) => b.id === selected.id) ?? null
@@ -56,7 +62,7 @@ export function LibraryPage() {
         </Button>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-2xl font-semibold tracking-tight">My books</h2>
           <span className="text-sm text-muted-foreground">
@@ -77,24 +83,35 @@ export function LibraryPage() {
             prefix="#"
           />
         )}
+        <div className="pt-1">
+          <SortSelector value={sortBy} onChange={setSortBy} />
+        </div>
       </div>
 
       {state.books.length === 0 ? (
-        <EmptyState
-          title="Your library is empty"
-          subtitle="Add your first book to start your shelf."
-          action={
-            <Button onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Add a book
-            </Button>
-          }
-        />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-100/60 via-pink-100/50 to-amber-100/50 px-6 py-10 sm:px-10 sm:py-14">
+          <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
+            <div className="space-y-4 max-w-md">
+              <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
+                All your books in one place
+              </h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Build your personal shelf. Add titles, rate what you've read, and find anything in seconds.
+              </p>
+              <Button size="lg" onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add your first book
+              </Button>
+            </div>
+            <ReadingIllustration className="w-full max-w-md justify-self-center" />
+          </div>
+        </div>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          title="No books match"
-          subtitle="Try clearing the search or a filter chip."
-        />
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <BookshelfIllustration className="w-40 sm:w-48" />
+          <p className="font-semibold">No books match</p>
+          <p className="text-sm text-muted-foreground">Try clearing the search or a filter chip.</p>
+        </div>
       ) : (
         <BookGrid books={filtered} onSelect={setSelected} />
       )}
@@ -135,25 +152,3 @@ export function LibraryPage() {
   );
 }
 
-function EmptyState({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <div className="h-14 w-14 rounded-2xl bg-accent grid place-items-center">
-        <BookOpen className="h-6 w-6 text-accent-foreground" />
-      </div>
-      <div className="space-y-1">
-        <p className="font-semibold">{title}</p>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
