@@ -4,7 +4,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 
 export type SortOption = "title-asc" | "author-asc" | "rating-desc" | "date-desc" | "status";
@@ -22,15 +21,24 @@ const SORT_LABELS: Record<SortOption, string> = {
   status: "Reading Status",
 };
 
+const DEFAULT_SORT: SortOption = "date-desc";
+
 export function SortSelector({ value, onChange }: SortSelectorProps) {
+  const isActive = value !== DEFAULT_SORT;
+
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-full sm:w-56 bg-card">
-        <div className="flex items-center gap-2">
+      <div className="relative shrink-0 w-8">
+        <SelectTrigger
+          className="h-8 w-8 rounded-full bg-card p-0 flex items-center justify-center [&>span]:hidden [&>svg:last-child]:hidden"
+          aria-label={`Sort: ${SORT_LABELS[value]}`}
+        >
           <ArrowUpDown className="h-4 w-4" />
-          <SelectValue placeholder="Sort by" />
-        </div>
-      </SelectTrigger>
+        </SelectTrigger>
+        {isActive && (
+          <span className="pointer-events-none absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />
+        )}
+      </div>
       <SelectContent>
         {Object.entries(SORT_LABELS).map(([key, label]) => (
           <SelectItem key={key} value={key}>

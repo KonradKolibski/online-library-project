@@ -51,7 +51,7 @@ export function CategoryManager() {
       </div>
       <ul className="space-y-2">
         {state.categories.map((c) => {
-          const count = state.books.filter((b) => b.categoryId === c.id).length;
+          const count = state.books.filter((b) => b.categoryIds.includes(c.id)).length;
           const isEditing = editingId === c.id;
           return (
             <li

@@ -15,26 +15,32 @@ import { BookForm } from "@/components/book/BookForm";
 import { BookDetail } from "@/components/book/BookDetail";
 import { SearchBar } from "@/components/search/SearchBar";
 import { FilterChips } from "@/components/search/FilterChips";
+import { ShelfTabs } from "@/components/search/ShelfTabs";
 import { SortSelector, type SortOption } from "@/components/search/SortSelector";
 import { sortBooks } from "@/lib/sort";
 import { ReadingIllustration } from "@/components/illustrations/ReadingIllustration";
 import { BookshelfIllustration } from "@/components/illustrations/BookshelfIllustration";
 
 export function LibraryPage() {
-  const { state, addBook, allTags } = useLibrary();
+  const { state, addBook, addShelf, renameShelf, setShelfColor, deleteShelf } = useLibrary();
   const [query, setQuery] = useState("");
   const debounced = useDebounced(query, 200);
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [tag, setTag] = useState<string | null>(null);
+  const [shelfId, setShelfId] = useState<string | null>(null); // null = "All books"
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
   const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
 
+  // Books filtered first by shelf (so chips/search only operate on the active shelf)
+  const shelfBooks = useMemo(() => {
+    if (shelfId === null) return state.books;
+    return state.books.filter((b) => b.shelfIds.includes(shelfId));
+  }, [state.books, shelfId]);
+
   const filtered = useMemo(() => {
     const q = debounced.trim().toLowerCase();
-    const results = state.books.filter((b) => {
-      if (categoryId && b.categoryId !== categoryId) return false;
-      if (tag && !b.tags.includes(tag)) return false;
+    const results = shelfBooks.filter((b) => {
+      if (categoryId && !b.categoryIds.includes(categoryId)) return false;
       if (q) {
         const hay = `${b.title} ${b.author}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -42,7 +48,17 @@ export function LibraryPage() {
       return true;
     });
     return sortBooks(results, sortBy);
-  }, [state.books, debounced, categoryId, tag, sortBy]);
+  }, [shelfBooks, debounced, categoryId, sortBy]);
+
+  // Counts for tabs
+  const shelfBookCounts = useMemo(() => {
+    const map = new Map<string | null, number>();
+    map.set(null, state.books.length);
+    for (const s of state.shelves) {
+      map.set(s.id, state.books.filter((b) => b.shelfIds.includes(s.id)).length);
+    }
+    return map;
+  }, [state.books, state.shelves]);
 
   const selectedLive = selected
     ? state.books.find((b) => b.id === selected.id) ?? null
@@ -66,25 +82,33 @@ export function LibraryPage() {
         <div className="flex items-baseline justify-between">
           <h2 className="text-2xl font-semibold tracking-tight">My books</h2>
           <span className="text-sm text-muted-foreground">
-            {filtered.length} of {state.books.length}
+            {filtered.length} of {shelfBooks.length}
           </span>
         </div>
-        <FilterChips
-          options={state.categories.map((c) => ({ id: c.id, label: c.name }))}
-          activeId={categoryId}
-          onChange={setCategoryId}
+
+        {/* Shelf tabs */}
+        <ShelfTabs
+          shelves={state.shelves}
+          activeId={shelfId}
+          onChange={setShelfId}
+          onCreate={(name, color) => addShelf(name, color)}
+          onRename={(id, name) => renameShelf(id, name)}
+          onSetColor={(id, color) => setShelfColor(id, color)}
+          onDelete={(id) => {
+            if (shelfId === id) setShelfId(null);
+            deleteShelf(id);
+          }}
+          bookCounts={shelfBookCounts}
         />
-        {allTags.length > 0 && (
-          <FilterChips
-            options={allTags.map((t) => ({ id: t, label: t }))}
-            activeId={tag}
-            onChange={setTag}
-            allLabel="Any tag"
-            prefix="#"
-          />
-        )}
-        <div className="pt-1">
+
+        {/* Sort + category filter chips */}
+        <div className="flex items-start gap-2">
           <SortSelector value={sortBy} onChange={setSortBy} />
+          <FilterChips
+            options={state.categories.map((c) => ({ id: c.id, label: c.name }))}
+            activeId={categoryId}
+            onChange={setCategoryId}
+          />
         </div>
       </div>
 
@@ -96,7 +120,8 @@ export function LibraryPage() {
                 All your books in one place
               </h3>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Build your personal shelf. Add titles, rate what you've read, and find anything in seconds.
+                Build your personal shelf. Add titles, rate what you&apos;ve
+                read, and find anything in seconds.
               </p>
               <Button size="lg" onClick={() => setAddOpen(true)}>
                 <Plus className="h-4 w-4" />
@@ -110,7 +135,9 @@ export function LibraryPage() {
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
           <BookshelfIllustration className="w-40 sm:w-48" />
           <p className="font-semibold">No books match</p>
-          <p className="text-sm text-muted-foreground">Try clearing the search or a filter chip.</p>
+          <p className="text-sm text-muted-foreground">
+            Try clearing the search, switching shelves, or removing a filter.
+          </p>
         </div>
       ) : (
         <BookGrid books={filtered} onSelect={setSelected} />
@@ -132,9 +159,13 @@ export function LibraryPage() {
             <DialogTitle>Add a book</DialogTitle>
           </DialogHeader>
           <BookForm
+            initialShelfIds={shelfId ? [shelfId] : []}
             onSubmit={(input) => {
               addBook(input);
               setAddOpen(false);
+            }}
+            onAddAnother={(input) => {
+              addBook(input);
             }}
             onCancel={() => setAddOpen(false)}
           />
@@ -151,4 +182,3 @@ export function LibraryPage() {
     </div>
   );
 }
-

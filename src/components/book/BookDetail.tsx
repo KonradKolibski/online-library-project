@@ -25,10 +25,15 @@ interface BookDetailProps {
 }
 
 export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
-  const { categoryById, updateBook, deleteBook } = useLibrary();
+  const { state, updateBook, deleteBook } = useLibrary();
   const [mode, setMode] = useState<"view" | "edit" | "confirm-delete">("view");
 
-  const category = categoryById(book.categoryId);
+  const categories = book.categoryIds
+    .map((id) => state.categories.find((c) => c.id === id))
+    .filter(Boolean) as { id: string; name: string }[];
+  const shelves = book.shelfIds
+    .map((id) => state.shelves.find((s) => s.id === id))
+    .filter(Boolean) as { id: string; name: string }[];
 
   function close() {
     setMode("view");
@@ -63,7 +68,8 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
             <DialogHeader>
               <DialogTitle>Delete this book?</DialogTitle>
               <DialogDescription>
-                "{book.title}" will be removed from your library. This can't be undone.
+                &ldquo;{book.title}&rdquo; will be removed from your library.
+                This can&apos;t be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -93,20 +99,27 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
               </div>
               <div className="flex-1 flex flex-col gap-3 min-w-0">
                 <div className="flex flex-wrap gap-1.5">
-                  {category && <Badge variant="secondary">{category.name}</Badge>}
-                  <Badge variant="outline">{READING_STATUS_LABEL[book.status]}</Badge>
+                  {categories.map((c) => (
+                    <Badge key={c.id} variant="secondary">
+                      {c.name}
+                    </Badge>
+                  ))}
+                  <Badge variant="outline">
+                    {READING_STATUS_LABEL[book.status]}
+                  </Badge>
                 </div>
-                {book.status === "reading" && typeof book.progress === "number" && (
-                  <ProgressBar value={book.progress} showLabel />
-                )}
+                {book.status === "reading" &&
+                  typeof book.progress === "number" && (
+                    <ProgressBar value={book.progress} showLabel />
+                  )}
                 {book.rating !== undefined && (
                   <StarRating value={book.rating} readOnly size="sm" />
                 )}
-                {book.tags.length > 0 && (
+                {shelves.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {book.tags.map((t) => (
-                      <Badge key={t} variant="outline" className="font-normal">
-                        #{t}
+                    {shelves.map((s) => (
+                      <Badge key={s.id} variant="outline" className="font-normal">
+                        {s.name}
                       </Badge>
                     ))}
                   </div>
@@ -118,11 +131,16 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Notes
                 </p>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{book.notes}</p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {book.notes}
+                </p>
               </div>
             )}
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setMode("confirm-delete")}>
+              <Button
+                variant="ghost"
+                onClick={() => setMode("confirm-delete")}
+              >
                 <Trash2 className="h-4 w-4" />
                 Delete
               </Button>
