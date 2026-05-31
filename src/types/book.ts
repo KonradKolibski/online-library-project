@@ -5,8 +5,8 @@ export interface Book {
   title: string;
   author: string;
   coverUrl?: string;
-  tags: string[];
-  categoryId: string;
+  categoryIds: string[];
+  shelfIds: string[];
   status: ReadingStatus;
   progress?: number;
   rating?: number;
@@ -20,10 +20,18 @@ export interface Category {
   name: string;
 }
 
+export interface Shelf {
+  id: string;
+  name: string;
+  /** Optional hex colour used for the dot indicator. */
+  color?: string;
+}
+
 export interface LibraryState {
-  schemaVersion: 1;
+  schemaVersion: 3;
   books: Book[];
   categories: Category[];
+  shelves: Shelf[];
 }
 
 export const READING_STATUS_LABEL: Record<ReadingStatus, string> = {

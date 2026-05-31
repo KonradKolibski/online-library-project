@@ -78,7 +78,8 @@ Items explicitly out of scope for v1 but planned for later versions:
   - *Rating distribution* as a compact histogram (how many books per star tier).
   - *Personal milestones* — books read this year, average rating, most-read author, etc.
   - All visuals follow the same pastel purple design language as the rest of the app: thin lines, soft fills, no chartjunk.
-- *(Likely also worth considering later: import from Goodreads/Amazon, sharing a library publicly, recommendations, multiple bookshelves/collections per user.)*
+- **Custom shelves / collections.** Users will be able to organize their library into named shelves — personal collections like "Favourites", "Reading list", "Lent out", "Coffee table books", or any label they invent. Each book can belong to one or more shelves. Shelves appear as a dedicated section in the sidebar/navigation, and clicking one filters the main view to only books on that shelf. Users can create, rename, and delete shelves freely. This is intentionally distinct from categories (which describe what a book *is*) and tags (which are loose keywords) — a shelf is a curated, user-managed grouping that reflects *how the user relates to the book*.
+- *(Likely also worth considering later: import from Goodreads/Amazon, sharing a library publicly, recommendations.)*
 
 ## 5. Future-future ideas (loose notes — not committed)
 

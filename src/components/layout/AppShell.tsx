@@ -1,29 +1,120 @@
-import type { ReactNode } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { Settings as SettingsIcon, Home, Library, Compass, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "./BottomNav";
+import { cn } from "@/lib/utils";
+import type { MainView, AppView } from "@/App";
+
+const SEEN_KEY = "capy-books:seen-tabs";
+
+function loadSeen(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markSeen(id: string, seen: Set<string>): Set<string> {
+  const next = new Set(seen);
+  next.add(id);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  return next;
+}
+
+interface NavItem {
+  id: MainView;
+  label: string;
+  icon: React.ElementType;
+  comingSoon?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: "home", label: "Home", icon: Home, comingSoon: true },
+  { id: "library", label: "My Library", icon: Library },
+  { id: "discover", label: "Discover", icon: Compass, comingSoon: true },
+  { id: "stats", label: "Stats", icon: BarChart2, comingSoon: true },
+];
 
 interface AppShellProps {
   children: ReactNode;
+  currentView: AppView;
+  onNavigate: (view: MainView) => void;
   onOpenSettings?: () => void;
 }
 
-export function AppShell({ children, onOpenSettings }: AppShellProps) {
+export function AppShell({
+  children,
+  currentView,
+  onNavigate,
+  onOpenSettings,
+}: AppShellProps) {
+  const [seen, setSeen] = useState<Set<string>>(loadSeen);
+
+  function handleNavigate(id: MainView) {
+    setSeen((prev) => markSeen(id, prev));
+    onNavigate(id);
+  }
+
   return (
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-30 backdrop-blur-md bg-background/70 border-b border-border/60">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <div className="flex items-center gap-2 shrink-0">
             <img
               src="/logo.svg"
               alt=""
               aria-hidden="true"
               className="h-9 w-9 rounded-2xl shadow-sm"
             />
-            <span className="font-display font-semibold text-lg tracking-tight">capy.books</span>
+            <span className="font-display font-semibold text-lg tracking-tight hidden sm:block">
+              capy.books
+            </span>
           </div>
+
+          {/* Nav tabs — desktop only (mobile uses BottomNav) */}
+          <nav className="hidden md:flex items-center gap-1">
+            {NAV_ITEMS.map(({ id, label, icon: Icon, comingSoon }) => {
+              const isActive = currentView === id;
+              const showDot = comingSoon && !seen.has(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleNavigate(id)}
+                  className={cn(
+                    "relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
+                  {showDot && (
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Settings */}
           {onOpenSettings && (
-            <Button variant="ghost" size="icon" onClick={onOpenSettings} aria-label="Settings">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenSettings}
+              aria-label="Settings"
+              className={cn(
+                "shrink-0",
+                currentView === "settings" && "text-primary bg-primary/10",
+              )}
+            >
               <SettingsIcon className="h-5 w-5" />
             </Button>
           )}
@@ -34,7 +125,7 @@ export function AppShell({ children, onOpenSettings }: AppShellProps) {
         {children}
       </main>
 
-      <BottomNav />
+      <BottomNav currentView={currentView} onNavigate={handleNavigate} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChipOption {
@@ -20,16 +21,54 @@ export function FilterChips({
   allLabel = "All",
   prefix,
 }: FilterChipsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ x: number; scrollLeft: number } | null>(null);
+  const didDrag = useRef(false);
+
+  function onMouseDown(e: React.MouseEvent) {
+    const el = scrollRef.current;
+    if (!el) return;
+    dragStart.current = { x: e.pageX, scrollLeft: el.scrollLeft };
+    didDrag.current = false;
+    el.style.cursor = "grabbing";
+  }
+
+  function onMouseMove(e: React.MouseEvent) {
+    if (!dragStart.current || !scrollRef.current) return;
+    const dx = e.pageX - dragStart.current.x;
+    if (Math.abs(dx) > 4) didDrag.current = true;
+    scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx;
+  }
+
+  function onMouseUp() {
+    dragStart.current = null;
+    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
+  }
+
+  function onChipClick(cb: () => void) {
+    if (!didDrag.current) cb();
+  }
+
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-      <Chip active={activeId === null} onClick={() => onChange(null)}>
+    <div
+      ref={scrollRef}
+      className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none select-none cursor-grab"
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+    >
+      <Chip
+        active={activeId === null}
+        onClick={() => onChipClick(() => onChange(null))}
+      >
         {allLabel}
       </Chip>
       {options.map((opt) => (
         <Chip
           key={opt.id}
           active={activeId === opt.id}
-          onClick={() => onChange(activeId === opt.id ? null : opt.id)}
+          onClick={() => onChipClick(() => onChange(activeId === opt.id ? null : opt.id))}
         >
           {prefix}
           {opt.label}
