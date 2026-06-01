@@ -32,7 +32,14 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-card p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-2xl max-h-[90vh] overflow-y-auto",
+        // Mobile: full-screen sheet — no rounded corners, no border, fills viewport.
+        "fixed inset-0 z-50 grid w-full gap-4 bg-card p-6 shadow-xl overflow-y-auto duration-200",
+        // Desktop (sm+): centred dialog with max width/height and rounded corners.
+        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:max-h-[90vh] sm:border sm:rounded-2xl",
+        // Open/close animations — fade-only on mobile (zoom looks odd on a
+        // full-screen surface), zoom + fade on desktop.
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}

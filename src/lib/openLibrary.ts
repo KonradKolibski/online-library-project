@@ -384,6 +384,21 @@ async function searchGoogleBooks(
   });
 }
 
+/**
+ * Look up a single book by ISBN. Uses Google Books (`q=isbn:...`) — accurate
+ * for both ISBN-10 and ISBN-13. Returns the first match, or undefined if no
+ * volume is found. Non-2xx and abort errors propagate to the caller.
+ */
+export async function searchByIsbn(
+  isbn: string,
+  signal: AbortSignal,
+): Promise<OpenLibrarySuggestion | undefined> {
+  const cleaned = isbn.replace(/[^\dXx]/g, "");
+  if (!cleaned) return undefined;
+  const results = await searchGoogleBooks(`isbn:${cleaned}`, signal);
+  return results[0];
+}
+
 // ─── Multi-source search ─────────────────────────────────────────────────────
 
 /**

@@ -1,5 +1,5 @@
-import { useRef, useState, type FormEvent } from "react";
-import { Upload, Loader2 } from "lucide-react";
+import { lazy, Suspense, useRef, useState, type FormEvent } from "react";
+import { Upload, Loader2, ScanBarcode } from "lucide-react";
 import type { Book, ReadingStatus } from "@/types/book";
 import { useLibrary, type BookInput } from "@/store/library";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,14 @@ import { StarRating } from "./StarRating";
 import { CoverImage } from "./CoverImage";
 import { TagMultiSelect } from "./TagMultiSelect";
 import { OpenLibraryTitleInput, type OpenLibraryPick } from "./OpenLibraryTitleInput";
+// Lazy-loaded — pulls in @zxing/* (~115 KB gzipped) only when the user opens
+// the scanner. Keeps the main bundle slim for the common path.
+const BarcodeScanner = lazy(() =>
+  import("./BarcodeScanner").then((m) => ({ default: m.BarcodeScanner })),
+);
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { AnimatedTabs } from "@/components/ui/animated-tabs";
-import { fetchWorkDescription } from "@/lib/openLibrary";
+import { fetchWorkDescription, searchByIsbn } from "@/lib/openLibrary";
 import { cn } from "@/lib/utils";
 
 function LabelWithInfo({
@@ -90,6 +95,58 @@ export function BookForm({
   const descriptionAbortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<FormTab>("basic");
+
+  // Barcode scanner state. The form is replaced by the camera view while
+  // scanning, and by a tiny "looking up…" overlay while the ISBN is being
+  // resolved to a book record.
+  const [scannerView, setScannerView] = useState<"off" | "scanning" | "looking-up">(
+    "off",
+  );
+  const [scanNotice, setScanNotice] = useState<string | null>(null);
+  const isbnLookupAbortRef = useRef<AbortController | null>(null);
+
+  async function handleBarcodeDetected(rawCode: string) {
+    const cleaned = rawCode.replace(/[^\dXx]/g, "");
+    isbnLookupAbortRef.current?.abort();
+    const controller = new AbortController();
+    isbnLookupAbortRef.current = controller;
+    setScannerView("looking-up");
+    setScanNotice(null);
+
+    try {
+      const hit = await searchByIsbn(cleaned, controller.signal);
+      if (controller.signal.aborted) return;
+      if (hit) {
+        handleOpenLibraryPick({
+          title: hit.title,
+          author: hit.author,
+          coverUrl: hit.coverUrl,
+          pages: hit.pages,
+          publishYear: hit.publishYear,
+          isbn: hit.isbn ?? cleaned,
+          workKey: hit.key,
+          description: hit.description,
+        });
+        setScanNotice(null);
+      } else {
+        // Pre-fill ISBN so the user has somewhere to start typing.
+        setIsbn(cleaned);
+        setScanNotice(
+          `Scanned ${cleaned} — no book data found. You can fill the form manually.`,
+        );
+      }
+    } catch (e) {
+      if (controller.signal.aborted) return;
+      setIsbn(cleaned);
+      setScanNotice(
+        `Scanned ${cleaned} — couldn't reach the book API. You can fill the form manually.`,
+      );
+      // eslint-disable-next-line no-console
+      console.warn("ISBN lookup failed:", e);
+    } finally {
+      if (!controller.signal.aborted) setScannerView("off");
+    }
+  }
 
   function resetForm() {
     setTitle("");
@@ -191,8 +248,62 @@ export function BookForm({
     onSubmit(buildInput());
   }
 
+  // ── Scanner overlay ───────────────────────────────────────────────────────
+  // When scanning or resolving the scanned ISBN, take over the modal instead of
+  // rendering the form. Avoids modal-on-modal stacking issues with Radix.
+  if (scannerView === "scanning") {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading scanner…</p>
+          </div>
+        }
+      >
+        <BarcodeScanner
+          onDetect={handleBarcodeDetected}
+          onCancel={() => setScannerView("off")}
+        />
+      </Suspense>
+    );
+  }
+  if (scannerView === "looking-up") {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          Looking up book details…
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {/* Scan barcode CTA — quick way to skip typing entirely.
+        Hidden when editing an existing book to keep the action clear. */}
+      {!initial && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setScanNotice(null);
+            setScannerView("scanning");
+          }}
+          className="self-start"
+        >
+          <ScanBarcode className="h-4 w-4" />
+          Scan barcode
+        </Button>
+      )}
+
+      {scanNotice && (
+        <div className="rounded-xl bg-muted/60 border border-border px-3 py-2 text-sm text-muted-foreground">
+          {scanNotice}
+        </div>
+      )}
+
       {/* Tabs */}
       <AnimatedTabs
         tabs={[
@@ -318,8 +429,8 @@ export function BookForm({
           </div>
         )}
 
-        {/* Rating (only for reading/finished) */}
-        {(status === "reading" || status === "finished") && (
+        {/* Rating — only meaningful once the book is finished */}
+        {status === "finished" && (
           <div className="space-y-2">
             <Label>Rating</Label>
             <StarRating value={rating} onChange={setRating} />
