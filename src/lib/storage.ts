@@ -42,7 +42,7 @@ export function seedCategories(): Category[] {
 
 export function emptyLibrary(): LibraryState {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     books: [],
     categories: seedCategories(),
     shelves: [],
@@ -52,7 +52,7 @@ export function emptyLibrary(): LibraryState {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function migrateV1(parsed: any): LibraryState {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     books: (parsed.books ?? []).map((b: any) => ({
       id: b.id,
       title: b.title,
@@ -77,7 +77,7 @@ function migrateV1(parsed: any): LibraryState {
 
 function migrateV2(parsed: any): LibraryState {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     books: (parsed.books ?? []).map((b: any) => ({
       ...b,
       shelfIds: Array.isArray(b.shelfIds) ? b.shelfIds : [],
@@ -87,6 +87,20 @@ function migrateV2(parsed: any): LibraryState {
         ? parsed.categories
         : seedCategories(),
     shelves: [],
+  };
+}
+
+function migrateV3(parsed: any): LibraryState {
+  // New optional metadata fields (isbn, pages, publishYear, description) just
+  // need to be tolerated as undefined on existing books — no transformation.
+  return {
+    schemaVersion: 4,
+    books: parsed.books ?? [],
+    categories:
+      Array.isArray(parsed.categories) && parsed.categories.length
+        ? parsed.categories
+        : seedCategories(),
+    shelves: Array.isArray(parsed.shelves) ? parsed.shelves : [],
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -100,8 +114,9 @@ export function load(): LibraryState {
     const parsed = JSON.parse(raw) as any;
     if (parsed.schemaVersion === 1) return migrateV1(parsed);
     if (parsed.schemaVersion === 2) return migrateV2(parsed);
+    if (parsed.schemaVersion === 3) return migrateV3(parsed);
     if (
-      parsed.schemaVersion !== 3 ||
+      parsed.schemaVersion !== 4 ||
       !Array.isArray(parsed.books) ||
       !Array.isArray(parsed.categories) ||
       !Array.isArray(parsed.shelves)
@@ -109,7 +124,7 @@ export function load(): LibraryState {
       return emptyLibrary();
     }
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       books: parsed.books,
       categories: parsed.categories.length ? parsed.categories : seedCategories(),
       shelves: parsed.shelves,

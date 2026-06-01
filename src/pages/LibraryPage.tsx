@@ -143,11 +143,15 @@ export function LibraryPage() {
         <BookGrid books={filtered} onSelect={setSelected} />
       )}
 
-      {/* Mobile FAB */}
+      {/*
+        Mobile FAB — anchored so its centre sits exactly on the bottom nav's
+        top edge. BottomNav measures 66px tall (verified at runtime), the FAB
+        is 56px (h-14), so `bottom: navHeight - halfFab = 66 - 28 = 38px`.
+      */}
       <button
         type="button"
         onClick={() => setAddOpen(true)}
-        className="sm:hidden fixed right-4 bottom-20 z-30 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="md:hidden fixed left-1/2 -translate-x-1/2 bottom-[38px] z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Add book"
       >
         <Plus className="h-6 w-6" />

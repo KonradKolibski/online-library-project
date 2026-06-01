@@ -11,6 +11,11 @@ export interface Book {
   progress?: number;
   rating?: number;
   notes?: string;
+  /** Metadata imported from Open Library (or set manually) */
+  isbn?: string;
+  pages?: number;
+  publishYear?: number;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,7 +33,7 @@ export interface Shelf {
 }
 
 export interface LibraryState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   books: Book[];
   categories: Category[];
   shelves: Shelf[];

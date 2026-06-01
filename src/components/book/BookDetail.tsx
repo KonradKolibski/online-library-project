@@ -126,6 +126,44 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
                 )}
               </div>
             </div>
+            {/* Metadata facts */}
+            {(book.pages !== undefined ||
+              book.publishYear !== undefined ||
+              book.isbn) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                {book.publishYear !== undefined && (
+                  <span>
+                    <span className="font-medium text-foreground">{book.publishYear}</span>
+                    <span className="ml-1">published</span>
+                  </span>
+                )}
+                {book.pages !== undefined && (
+                  <span>
+                    <span className="font-medium text-foreground">{book.pages}</span>
+                    <span className="ml-1">pages</span>
+                  </span>
+                )}
+                {book.isbn && (
+                  <span>
+                    <span className="font-medium text-foreground">ISBN</span>
+                    <span className="ml-1">{book.isbn}</span>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Description (from Open Library) */}
+            {book.description && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  About
+                </p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {book.description}
+                </p>
+              </div>
+            )}
+
             {book.notes && (
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

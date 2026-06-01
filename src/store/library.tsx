@@ -28,7 +28,7 @@ type Action =
 export type BookInput = Omit<Book, "id" | "createdAt" | "updatedAt">;
 
 const initialState: LibraryState = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   books: [],
   categories: [],
   shelves: [],
@@ -127,7 +127,7 @@ function reducer(state: LibraryState, action: Action): LibraryState {
     case "importState":
       return action.state;
     case "clearAll":
-      return { ...initialState, schemaVersion: 3, categories: [], shelves: [] };
+      return { ...initialState, schemaVersion: 4, categories: [], shelves: [] };
     default:
       return state;
   }

@@ -213,7 +213,7 @@ function DataSection() {
         const parsed = JSON.parse(reader.result as string) as any;
         const v = parsed?.schemaVersion;
         if (
-          (v !== 1 && v !== 2 && v !== 3) ||
+          (v !== 1 && v !== 2 && v !== 3 && v !== 4) ||
           !Array.isArray(parsed.books) ||
           !Array.isArray(parsed.categories)
         ) {
