@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import type { Shelf } from "@/types/book";
@@ -45,6 +45,43 @@ export function ShelfTabs({
   const [createPos, setCreatePos] = useState<CreatePos | null>(null);
   const [draft, setDraft] = useState("");
   const [draftColor, setDraftColor] = useState<string | undefined>(undefined);
+
+  // Floating underline indicator
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+  const [indicatorReady, setIndicatorReady] = useState(false);
+
+  function registerTab(key: string, el: HTMLButtonElement | null) {
+    if (el) tabRefs.current.set(key, el);
+    else tabRefs.current.delete(key);
+  }
+
+  function measureIndicator() {
+    const key = activeId ?? "__all__";
+    const el = tabRefs.current.get(key);
+    const container = scrollRef.current;
+    if (!el || !container) return;
+    const elRect = el.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    // Position relative to scroll container's content (account for scrollLeft)
+    setIndicator({
+      left: elRect.left - containerRect.left + container.scrollLeft,
+      width: elRect.width,
+    });
+  }
+
+  useLayoutEffect(() => {
+    measureIndicator();
+    requestAnimationFrame(() => setIndicatorReady(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, shelves.length, shelves]);
+
+  // Recompute on window resize
+  useEffect(() => {
+    window.addEventListener("resize", measureIndicator);
+    return () => window.removeEventListener("resize", measureIndicator);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const menuOpenFor = menuPos?.id ?? null;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -153,11 +190,24 @@ export function ShelfTabs({
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
     >
+      {/* Floating underline indicator */}
+      {indicator && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute bottom-0 h-0.5 rounded-full bg-primary",
+            indicatorReady && "transition-[left,width] duration-300 ease-out",
+          )}
+          style={{ left: indicator.left, width: indicator.width }}
+        />
+      )}
+
       {/* "All books" — always first */}
       <Tab
         active={activeId === null}
         count={bookCounts.get(null)}
         onClick={() => onTabClick(() => onChange(null))}
+        tabRef={(el) => registerTab("__all__", el)}
       >
         All books
       </Tab>
@@ -200,6 +250,7 @@ export function ShelfTabs({
               count={bookCounts.get(s.id)}
               color={s.color}
               onClick={() => onTabClick(() => onChange(s.id))}
+              tabRef={(el) => registerTab(s.id, el)}
             >
               {s.name}
             </Tab>
@@ -357,23 +408,24 @@ function Tab({
   count,
   color,
   onClick,
+  tabRef,
   children,
 }: {
   active: boolean;
   count?: number;
   color?: string;
   onClick: () => void;
+  tabRef?: (el: HTMLButtonElement | null) => void;
   children: React.ReactNode;
 }) {
   return (
     <button
+      ref={tabRef}
       type="button"
       onClick={onClick}
       className={cn(
-        "group shrink-0 flex items-center justify-center gap-1.5 px-6 py-2.5 text-sm font-medium border-b-2 transition-colors relative",
-        active
-          ? "text-primary border-primary"
-          : "text-muted-foreground hover:text-foreground border-transparent",
+        "group shrink-0 flex items-center justify-center gap-1.5 px-[18px] py-2.5 text-sm font-medium border-b-2 border-transparent transition-colors relative",
+        active ? "text-primary" : "text-muted-foreground hover:text-foreground",
       )}
     >
       {color && (
