@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
@@ -8,8 +8,8 @@ import {
   Bell,
   Database,
   Download,
-  Upload,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { CategoryManager } from "@/components/settings/CategoryManager";
 import { ShelfManager } from "@/components/settings/ShelfManager";
 import { useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
-import { load } from "@/lib/storage";
+import { useAuth } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
 interface SettingsPageProps {
@@ -79,6 +79,7 @@ function SectionContent({ children }: { children: React.ReactNode }) {
 
 function ProfileSection() {
   const { settings, update } = useSettings();
+  const { user, signOut } = useAuth();
   const [name, setName] = useState(settings.name);
   const [goal, setGoal] = useState(
     settings.readingGoal !== null ? String(settings.readingGoal) : "",
@@ -145,6 +146,25 @@ function ProfileSection() {
           Save profile
         </Button>
       </div>
+
+      <div className="mt-2 flex items-center justify-between rounded-xl border border-border bg-card p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Account</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {user?.email ?? "Signed in"}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            void signOut();
+          }}
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
+      </div>
     </SectionContent>
   );
 }
@@ -188,10 +208,8 @@ function NotificationsSection() {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 function DataSection() {
-  const { state, importState, clearAll } = useLibrary();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { state, clearAll } = useLibrary();
   const [confirmClear, setConfirmClear] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
 
   function handleExport() {
     const json = JSON.stringify(state, null, 2);
@@ -202,31 +220,6 @@ function DataSection() {
     a.download = `capy-books-export-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  function handleImportFile(file: File) {
-    setImportError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const parsed = JSON.parse(reader.result as string) as any;
-        const v = parsed?.schemaVersion;
-        if (
-          (v !== 1 && v !== 2 && v !== 3 && v !== 4) ||
-          !Array.isArray(parsed.books) ||
-          !Array.isArray(parsed.categories)
-        ) {
-          setImportError("Invalid file format. Please use a capy.books export.");
-          return;
-        }
-        localStorage.setItem("online-library:v1", JSON.stringify(parsed));
-        importState(load());
-      } catch {
-        setImportError("Could not parse the file. Make sure it's a valid JSON export.");
-      }
-    };
-    reader.readAsText(file);
   }
 
   return (
@@ -245,38 +238,6 @@ function DataSection() {
             Export
           </Button>
         </div>
-
-        {/* Import */}
-        <div className="flex items-center justify-between rounded-xl bg-card border border-border p-4">
-          <div>
-            <p className="font-medium text-sm">Import library</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Restore from a previous export. This replaces your current library.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="h-4 w-4" />
-            Import
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImportFile(file);
-              e.target.value = "";
-            }}
-          />
-        </div>
-        {importError && (
-          <p className="text-sm text-destructive px-1">{importError}</p>
-        )}
 
         {/* Clear all */}
         <div className="flex items-center justify-between rounded-xl bg-destructive/5 border border-destructive/20 p-4">

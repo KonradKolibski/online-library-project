@@ -1,15 +1,212 @@
-import { Home } from "lucide-react";
+import { useMemo, useState } from "react";
+import type { Book } from "@/types/book";
+import type { MainView } from "@/App";
+import { useLibrary } from "@/store/library";
+import { useSettings } from "@/store/settings";
+import { useAddBook } from "@/store/addBook";
+import { BookDetail } from "@/components/book/BookDetail";
+import { WelcomeHero } from "@/components/home/WelcomeHero";
+import { WeekStrip } from "@/components/home/WeekStrip";
+import { LogReadingDialog } from "@/components/home/LogReadingDialog";
+import { CurrentlyReadingRow } from "@/components/home/CurrentlyReadingRow";
+import { WeeklyFeaturedBook } from "@/components/home/WeeklyFeaturedBook";
+import { WeeklyReadingGoalCard } from "@/components/home/WeeklyReadingGoalCard";
+import { FavouriteAuthorsCard } from "@/components/home/FavouriteAuthorsCard";
+import { StatsHighlights } from "@/components/home/StatsHighlights";
 
-export function HomePage() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <div className="rounded-2xl bg-primary/10 p-5 text-primary">
-        <Home className="h-10 w-10" />
+interface HomePageProps {
+  onNavigate: (view: MainView) => void;
+  onOpenSettings: () => void;
+}
+
+const FAVOURITE_AUTHORS_LIMIT = 4;
+const GOAL_BOOK_PREVIEW_LIMIT = 3;
+
+export function HomePage({ onNavigate }: HomePageProps) {
+  const { state } = useLibrary();
+  const { settings } = useSettings();
+  const { openAddBook } = useAddBook();
+
+  // Touch onNavigate so its prop is wired for the future "View all" actions.
+  void onNavigate;
+
+  const [selected, setSelected] = useState<Book | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const selectedLive = selected
+    ? state.books.find((b) => b.id === selected.id) ?? null
+    : null;
+
+  /** Set of YYYY-MM-DD strings the user has at least one session for. */
+  const sessionDates = useMemo(() => {
+    return new Set(state.sessions.map((s) => s.date));
+  }, [state.sessions]);
+
+  const {
+    readingBooks,
+    toReadBooks,
+    featuredBook,
+    favouriteAuthors,
+    booksThisYear,
+    pagesThisYear,
+  } = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    const reading = state.books
+      .filter((b) => b.status === "reading")
+      .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
+
+    const toRead = state.books
+      .filter((b) => b.status === "to-read")
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+    // Featured book — random pick from to-read. Stable across re-renders within
+    // a session; rerolls only when the to-read set changes (add / remove / status flip).
+    const toReadIdsKey = toRead.map((b) => b.id).join("|");
+    const featured =
+      toRead.length > 0
+        ? toRead[Math.floor(Math.random() * toRead.length)]
+        : null;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    toReadIdsKey;
+
+    const finished = state.books.filter((b) => b.status === "finished");
+    const finishedYr = finished.filter(
+      (b) => new Date(b.updatedAt).getFullYear() === currentYear,
+    );
+    const pagesYr = finishedYr.reduce(
+      (acc, b) => (typeof b.pages === "number" ? acc + b.pages : acc),
+      0,
+    );
+
+    // Favourite authors — group by author string, count, sort desc.
+    const counts = new Map<string, number>();
+    for (const b of state.books) {
+      const name = b.author?.trim();
+      if (!name) continue;
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    const ranked = [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) =>
+        b.count !== a.count ? b.count - a.count : a.name.localeCompare(b.name),
+      )
+      .slice(0, FAVOURITE_AUTHORS_LIMIT);
+
+    return {
+      readingBooks: reading,
+      toReadBooks: toRead,
+      featuredBook: featured,
+      favouriteAuthors: ranked,
+      booksThisYear: finishedYr.length,
+      pagesThisYear: pagesYr,
+    };
+    // We intentionally include `state.books` only — Math.random is non-pure
+    // but we want a fresh featured pick whenever the book set changes.
+  }, [state.books]);
+
+  // ── Empty library — full onboarding hero ─────────────────────────────────
+  if (state.books.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <WeekStrip
+          sessionDates={sessionDates}
+          onLogReading={() => setLogOpen(true)}
+        />
+        <WelcomeHero variant="empty" name={settings.name} onAddBook={openAddBook} />
+        {/* Mockup sections still render — gives the user a preview of what's coming. */}
+        <DashboardGrid
+          readingBooks={[]}
+          featuredBook={null}
+          goalBooks={[]}
+          favouriteAuthors={[]}
+          booksThisYear={0}
+          pagesThisYear={0}
+          totalBooks={0}
+          onSelect={setSelected}
+        />
+        <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
       </div>
-      <h3 className="text-xl font-semibold tracking-tight">Home</h3>
-      <p className="text-sm text-muted-foreground max-w-xs">
-        Your personal dashboard — reading activity, recent books, and highlights — coming soon.
-      </p>
+    );
+  }
+
+  // ── Returning user ───────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-6">
+      <WeekStrip
+        sessionDates={sessionDates}
+        onLogReading={() => setLogOpen(true)}
+      />
+      <WelcomeHero variant="returning" name={settings.name} />
+      <DashboardGrid
+        readingBooks={readingBooks}
+        featuredBook={featuredBook}
+        goalBooks={toReadBooks.slice(0, GOAL_BOOK_PREVIEW_LIMIT)}
+        favouriteAuthors={favouriteAuthors}
+        booksThisYear={booksThisYear}
+        pagesThisYear={pagesThisYear}
+        totalBooks={state.books.length}
+        onSelect={setSelected}
+      />
+
+      {selectedLive && (
+        <BookDetail
+          book={selectedLive}
+          open={!!selected}
+          onOpenChange={(o) => !o && setSelected(null)}
+        />
+      )}
+
+      <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
+    </div>
+  );
+}
+
+interface DashboardGridProps {
+  readingBooks: Book[];
+  featuredBook: Book | null;
+  goalBooks: Book[];
+  favouriteAuthors: { name: string; count: number }[];
+  booksThisYear: number;
+  pagesThisYear: number;
+  totalBooks: number;
+  onSelect: (b: Book) => void;
+}
+
+/**
+ * Two-column responsive layout — on lg+ the left column carries the wider
+ * sections (currently reading, weekly goal mockup, KPI row) while the right
+ * column stacks the narrower picks (featured book, favourite authors). On
+ * smaller screens everything collapses into a single vertical flow.
+ */
+function DashboardGrid({
+  readingBooks,
+  featuredBook,
+  goalBooks,
+  favouriteAuthors,
+  booksThisYear,
+  pagesThisYear,
+  totalBooks,
+  onSelect,
+}: DashboardGridProps) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Left column — main flow */}
+      <div className="lg:col-span-2 flex flex-col gap-6">
+        <CurrentlyReadingRow books={readingBooks} onSelect={onSelect} />
+        <WeeklyReadingGoalCard books={goalBooks} onSelect={onSelect} />
+        <StatsHighlights
+          booksThisYear={booksThisYear}
+          pagesThisYear={pagesThisYear}
+          totalBooks={totalBooks}
+        />
+      </div>
+
+      {/* Right column — featured + authors */}
+      <div className="flex flex-col gap-6">
+        <WeeklyFeaturedBook book={featuredBook} onSelect={onSelect} />
+        <FavouriteAuthorsCard authors={favouriteAuthors} />
+      </div>
     </div>
   );
 }

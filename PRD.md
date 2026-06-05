@@ -67,6 +67,22 @@ The reference is mobile-first, but for v1 we adapt the same visual language to a
 
 Items explicitly out of scope for v1 but planned for later versions:
 
+- **Dashboard / Home screen** — Replace the placeholder Home view with a personalised landing dashboard that summarises the user's reading life at a glance. Pulls together signals from across the rest of the app into one calm, scannable surface — the user lands here and immediately knows where to pick up, what to read next, and how they're tracking against their goals. Likely contents:
+  - *Currently reading* — a top carousel of in-progress books with progress bars and a one-tap "I read more" action that opens the same quick-progress slider available in BookDetail.
+  - *Up next* — a compact preview of the "to-read" pile, prioritised by what was most recently added or pinned.
+  - *Reading goal* — visual progress toward the yearly book goal (set in Profile settings), shown as a ring or pill (e.g. *7 of 24 books read this year*).
+  - *Recent activity* — last finished book, last rating, last note — small "what you've been up to" strip.
+  - *Streak surface* (once streaks ship) — current streak count and a primary "log today's reading" CTA, so the dashboard becomes the daily entry point that drives retention.
+  - *Highlights from stats* — one or two compact figures pulled from the full Stats page (e.g. pages read this month, most-read genre) — teases the deeper view without duplicating it.
+  - *Discover hook* (once Discover ships) — one or two suggested books based on the user's history, with a link through to the full Discover module.
+
+  The home view stays visual and non-chart-heavy (charts live in Stats). Same pastel surfaces, soft cards, generous whitespace as the rest of the app.
+- **Customizable dashboard widgets** — evolve the Home screen from a fixed layout into a fully personalizable dashboard the user shapes to their own reading habits. Every section (currently reading, weekly strip, reading goal, featured pick, favourite authors, stats highlights, and any future widgets) becomes a self-contained, rearrangeable widget. The user should have an easy, low-friction way to tailor the dashboard — ideally an "Edit dashboard" / customize mode toggled right from Home. Likely capabilities:
+  - *Show / hide* any widget so the dashboard only carries what each user cares about.
+  - *Reorder* widgets via drag-and-drop, with the layout persisting locally (and later syncing once accounts ship).
+  - *Resize / span* — let some widgets go wide or compact within the responsive grid (e.g. a full-width currently-reading carousel vs. a compact stats tile).
+  - *Add from a widget gallery* — a picker of available widgets the user can drop onto their dashboard, leaving room to grow the catalogue over time.
+  - Sensible defaults so a brand-new user gets a good out-of-the-box layout and only customizes if they want to. The personalized layout is stored in app settings/local storage (schema-versioned like the rest of the data), keeping the same calm pastel design language in both view and edit modes.
 - **User accounts** — register / login module, so a user's library follows them across devices and is backed up to a server.
 - **Desktop-first polish** — v1 is already responsive, but a future pass will refine the desktop experience (keyboard shortcuts, denser layouts, multi-column views).
 - **Barcode scanning** — let the user scan a book's ISBN barcode with their phone camera; the app looks up the book via an external metadata API (e.g. Google Books, Open Library) and adds it to the library automatically with cover, title, author pre-filled.

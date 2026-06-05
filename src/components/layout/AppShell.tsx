@@ -1,7 +1,15 @@
 import { type ReactNode, useState } from "react";
-import { Settings as SettingsIcon, Home, Library, Compass, BarChart2 } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Home,
+  Library,
+  Compass,
+  BarChart2,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "./BottomNav";
+import { useAddBook } from "@/store/addBook";
 import { cn } from "@/lib/utils";
 import type { MainView, AppView } from "@/App";
 
@@ -51,6 +59,7 @@ export function AppShell({
   onOpenSettings,
 }: AppShellProps) {
   const [seen, setSeen] = useState<Set<string>>(loadSeen);
+  const { openAddBook } = useAddBook();
 
   function handleNavigate(id: MainView) {
     setSeen((prev) => markSeen(id, prev));
@@ -126,6 +135,23 @@ export function AppShell({
       </main>
 
       <BottomNav currentView={currentView} onNavigate={handleNavigate} />
+
+      {/*
+        Global Add-Book FAB — always visible on mobile, regardless of which
+        section is active. Anchored so its centre sits exactly on the bottom
+        nav's top edge (nav is 66px tall, FAB is 56px, so bottom = 38px).
+        Hidden on the Settings screen where it would feel out of place.
+      */}
+      {currentView !== "settings" && (
+        <button
+          type="button"
+          onClick={() => openAddBook()}
+          className="md:hidden fixed left-1/2 -translate-x-1/2 bottom-[38px] z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Add book"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
     </div>
   );
 }
