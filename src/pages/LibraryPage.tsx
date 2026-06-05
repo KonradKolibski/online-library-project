@@ -1,17 +1,11 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { useLibrary } from "@/store/library";
+import { useAddBook } from "@/store/addBook";
 import { useDebounced } from "@/hooks/useDebounced";
 import type { Book } from "@/types/book";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { BookGrid } from "@/components/book/BookGrid";
-import { BookForm } from "@/components/book/BookForm";
 import { BookDetail } from "@/components/book/BookDetail";
 import { SearchBar } from "@/components/search/SearchBar";
 import { FilterChips } from "@/components/search/FilterChips";
@@ -22,14 +16,19 @@ import { ReadingIllustration } from "@/components/illustrations/ReadingIllustrat
 import { BookshelfIllustration } from "@/components/illustrations/BookshelfIllustration";
 
 export function LibraryPage() {
-  const { state, addBook, addShelf, renameShelf, setShelfColor, deleteShelf } = useLibrary();
+  const { state, addShelf, renameShelf, setShelfColor, deleteShelf } = useLibrary();
+  const { openAddBook } = useAddBook();
   const [query, setQuery] = useState("");
   const debounced = useDebounced(query, 200);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [shelfId, setShelfId] = useState<string | null>(null); // null = "All books"
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
-  const [addOpen, setAddOpen] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
+
+  /** Open the global Add Book dialog, pre-selecting the active shelf (if any). */
+  function handleAddBook() {
+    openAddBook({ initialShelfIds: shelfId ? [shelfId] : [] });
+  }
 
   // Books filtered first by shelf (so chips/search only operate on the active shelf)
   const shelfBooks = useMemo(() => {
@@ -69,7 +68,7 @@ export function LibraryPage() {
       <div className="flex items-center gap-2">
         <SearchBar value={query} onChange={setQuery} />
         <Button
-          onClick={() => setAddOpen(true)}
+          onClick={handleAddBook}
           className="hidden sm:inline-flex"
           aria-label="Add book"
         >
@@ -123,7 +122,7 @@ export function LibraryPage() {
                 Build your personal shelf. Add titles, rate what you&apos;ve
                 read, and find anything in seconds.
               </p>
-              <Button size="lg" onClick={() => setAddOpen(true)}>
+              <Button size="lg" onClick={handleAddBook}>
                 <Plus className="h-4 w-4" />
                 Add your first book
               </Button>
@@ -142,39 +141,6 @@ export function LibraryPage() {
       ) : (
         <BookGrid books={filtered} onSelect={setSelected} />
       )}
-
-      {/*
-        Mobile FAB — anchored so its centre sits exactly on the bottom nav's
-        top edge. BottomNav measures 66px tall (verified at runtime), the FAB
-        is 56px (h-14), so `bottom: navHeight - halfFab = 66 - 28 = 38px`.
-      */}
-      <button
-        type="button"
-        onClick={() => setAddOpen(true)}
-        className="md:hidden fixed left-1/2 -translate-x-1/2 bottom-[38px] z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Add book"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a book</DialogTitle>
-          </DialogHeader>
-          <BookForm
-            initialShelfIds={shelfId ? [shelfId] : []}
-            onSubmit={(input) => {
-              addBook(input);
-              setAddOpen(false);
-            }}
-            onAddAnother={(input) => {
-              addBook(input);
-            }}
-            onCancel={() => setAddOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
 
       {selectedLive && (
         <BookDetail

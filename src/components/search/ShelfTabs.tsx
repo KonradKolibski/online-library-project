@@ -87,31 +87,36 @@ export function ShelfTabs({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // Close menu on outside click or scroll
+  // Close menu on outside pointer-down. We listen to BOTH mousedown and
+  // touchstart so taps on mobile are handled — `mousedown` alone is fragile
+  // when the on-screen keyboard reshuffles the viewport. We intentionally do
+  // NOT close on `scroll`: on mobile, focusing an <input> opens the keyboard
+  // which fires a window scroll event, and that was instantly dismissing the
+  // popover the moment it appeared. The popover is `position: fixed` so it
+  // stays glued to the screen even if the page behind it scrolls.
   useEffect(() => {
     if (!menuOpenFor) return;
-    function handler(e: MouseEvent) {
-      const t = e.target as HTMLElement;
+    function handler(e: Event) {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
       if (!t.closest("[data-shelf-menu]") && !t.closest("[data-shelf-menu-popover]")) {
         setMenuPos(null);
       }
     }
-    function closeOnScroll() {
-      setMenuPos(null);
-    }
     document.addEventListener("mousedown", handler);
-    window.addEventListener("scroll", closeOnScroll, true);
+    document.addEventListener("touchstart", handler, { passive: true });
     return () => {
       document.removeEventListener("mousedown", handler);
-      window.removeEventListener("scroll", closeOnScroll, true);
+      document.removeEventListener("touchstart", handler);
     };
   }, [menuOpenFor]);
 
-  // Close create popover on outside click or scroll
+  // Close create popover on outside pointer-down — same reasoning as above.
   useEffect(() => {
     if (!createPos) return;
-    function handler(e: MouseEvent) {
-      const t = e.target as HTMLElement;
+    function handler(e: Event) {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
       if (
         !t.closest("[data-shelf-create-trigger]") &&
         !t.closest("[data-shelf-create-popover]")
@@ -119,14 +124,11 @@ export function ShelfTabs({
         cancelCreate();
       }
     }
-    function closeOnScroll() {
-      cancelCreate();
-    }
     document.addEventListener("mousedown", handler);
-    window.addEventListener("scroll", closeOnScroll, true);
+    document.addEventListener("touchstart", handler, { passive: true });
     return () => {
       document.removeEventListener("mousedown", handler);
-      window.removeEventListener("scroll", closeOnScroll, true);
+      document.removeEventListener("touchstart", handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createPos]);

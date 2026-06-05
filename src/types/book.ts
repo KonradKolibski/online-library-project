@@ -32,11 +32,44 @@ export interface Shelf {
   color?: string;
 }
 
+export type SessionMood =
+  | "happy"
+  | "thoughtful"
+  | "moved"
+  | "motivated"
+  | "bored";
+
+export interface SessionBookProgress {
+  bookId: string;
+  /** Progress percentage AFTER this reading session (0–100). */
+  newProgress: number;
+}
+
+export interface ReadingSession {
+  id: string;
+  /** Local-time YYYY-MM-DD, NOT a full ISO timestamp. The strip groups by day
+   *  so anything finer would just complicate lookups. */
+  date: string;
+  bookProgresses: SessionBookProgress[];
+  /** Minutes read in this session, optional. */
+  minutes?: number;
+  /** How the session felt — drives the future streak/check-in surfaces. */
+  mood?: SessionMood;
+  /** Free-form thoughts. */
+  notes?: string;
+  /** Optional "commonplace book" quote. */
+  quote?: string;
+  quotePage?: number;
+  /** When the entry was logged (for audit; date drives the calendar). */
+  createdAt: string;
+}
+
 export interface LibraryState {
-  schemaVersion: 4;
+  schemaVersion: 5;
   books: Book[];
   categories: Category[];
   shelves: Shelf[];
+  sessions: ReadingSession[];
 }
 
 export const READING_STATUS_LABEL: Record<ReadingStatus, string> = {

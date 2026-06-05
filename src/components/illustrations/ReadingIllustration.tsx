@@ -3,13 +3,13 @@ interface Props {
 }
 
 /**
- * Capybara reading books illustration, served from
- * public/illustrations/capybara-reading-books.svg.
+ * Capybara reading on a stack of books illustration, served from
+ * public/illustrations/capy-reading.png.
  */
 export function ReadingIllustration({ className }: Props) {
   return (
     <img
-      src="/illustrations/capybara-reading-books.svg"
+      src="/illustrations/capy-reading.png"
       alt=""
       aria-hidden="true"
       className={className}
