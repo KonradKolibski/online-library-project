@@ -12,6 +12,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { Blobs } from "@/components/illustrations/Blobs";
 import { Onboarding, hasOnboarded } from "@/components/onboarding/Onboarding";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export type MainView = "home" | "library" | "discover" | "stats";
 export type AppView = MainView | "settings";
@@ -62,7 +63,32 @@ function AuthedApp() {
   );
 }
 
+function ConfigError() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-card border border-border rounded-2xl p-6 space-y-3 text-center shadow-sm">
+        <h1 className="text-lg font-semibold">Configuration needed</h1>
+        <p className="text-sm text-muted-foreground">
+          The app can&apos;t reach its backend because the Supabase environment
+          variables are missing.
+        </p>
+        <div className="text-left text-xs bg-muted/60 rounded-lg p-3 font-mono leading-relaxed">
+          VITE_SUPABASE_URL
+          <br />
+          VITE_SUPABASE_PUBLISHABLE_KEY
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Add them in Vercel → Settings → Environment Variables (all
+          environments), then redeploy. For local dev, copy{" "}
+          <code>.env.example</code> to <code>.env.local</code>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function AppRouter() {
+  if (!isSupabaseConfigured) return <ConfigError />;
   const { user, loading } = useAuth();
   if (loading) {
     return (
