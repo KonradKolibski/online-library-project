@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LibraryProvider } from "@/store/library";
 import { SettingsProvider } from "@/store/settings";
 import { AddBookProvider } from "@/store/addBook";
@@ -19,9 +19,31 @@ export type MainView = "home" | "library" | "discover" | "stats";
 export type AppView = MainView | "settings" | "docs";
 
 function AuthedApp() {
-  const [view, setView] = useState<AppView>("library");
+  // The Docs page is the one view with its own URL (`/docs`); everything else
+  // lives at `/`. We keep `view` as the source of truth and sync the path with
+  // the History API so /docs is shareable and survives reload.
+  const [view, setView] = useState<AppView>(() =>
+    window.location.pathname === "/docs" ? "docs" : "library",
+  );
   const [prevMain, setPrevMain] = useState<MainView>("library");
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
+
+  // Keep the URL in sync with the current view.
+  useEffect(() => {
+    const target = view === "docs" ? "/docs" : "/";
+    if (window.location.pathname !== target) {
+      window.history.pushState({}, "", target);
+    }
+  }, [view]);
+
+  // React to browser back/forward.
+  useEffect(() => {
+    function onPop() {
+      setView(window.location.pathname === "/docs" ? "docs" : prevMain);
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [prevMain]);
 
   function openSettings() {
     if (view !== "settings" && view !== "docs") setPrevMain(view as MainView);
