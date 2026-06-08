@@ -1,0 +1,16 @@
+# Supabase local/deploy config. Only the function-level JWT settings matter here.
+
+# Public per-user API. Authenticated by Personal Access Tokens, NOT a Supabase
+# JWT/anon key, so the platform's JWT gate must be disabled — the function does
+# its own token auth in code.
+[functions.api]
+verify_jwt = false
+
+# First-party token management — requires a logged-in app user, so keep the JWT
+# gate on (the function also re-checks the user via auth.getUser()).
+[functions.tokens]
+verify_jwt = true
+
+# First-party recommendation chat called from the browser with the anon key.
+[functions.ai-recommend]
+verify_jwt = true

@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import {
   Settings as SettingsIcon,
+  FileText,
   Home,
   Library,
   Compass,
@@ -50,6 +51,7 @@ interface AppShellProps {
   currentView: AppView;
   onNavigate: (view: MainView) => void;
   onOpenSettings?: () => void;
+  onOpenDocs?: () => void;
 }
 
 export function AppShell({
@@ -57,6 +59,7 @@ export function AppShell({
   currentView,
   onNavigate,
   onOpenSettings,
+  onOpenDocs,
 }: AppShellProps) {
   const [seen, setSeen] = useState<Set<string>>(loadSeen);
   const { openAddBook } = useAddBook();
@@ -112,21 +115,31 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Settings */}
-          {onOpenSettings && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              aria-label="Settings"
-              className={cn(
-                "shrink-0",
-                currentView === "settings" && "text-primary bg-primary/10",
-              )}
-            >
-              <SettingsIcon className="h-5 w-5" />
-            </Button>
-          )}
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            {onOpenDocs && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onOpenDocs}
+                aria-label="API docs"
+                className={cn(currentView === "docs" && "text-primary bg-primary/10")}
+              >
+                <FileText className="h-5 w-5" />
+              </Button>
+            )}
+            {onOpenSettings && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onOpenSettings}
+                aria-label="Settings"
+                className={cn(currentView === "settings" && "text-primary bg-primary/10")}
+              >
+                <SettingsIcon className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -142,7 +155,7 @@ export function AppShell({
         nav's top edge (nav is 66px tall, FAB is 56px, so bottom = 38px).
         Hidden on the Settings screen where it would feel out of place.
       */}
-      {currentView !== "settings" && (
+      {currentView !== "settings" && currentView !== "docs" && (
         <button
           type="button"
           onClick={() => openAddBook()}
