@@ -23,7 +23,7 @@ function AuthedApp() {
   // lives at `/`. We keep `view` as the source of truth and sync the path with
   // the History API so /docs is shareable and survives reload.
   const [view, setView] = useState<AppView>(() =>
-    window.location.pathname === "/docs" ? "docs" : "library",
+    window.location.pathname.startsWith("/docs") ? "docs" : "library",
   );
   const [prevMain, setPrevMain] = useState<MainView>("library");
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
@@ -39,7 +39,7 @@ function AuthedApp() {
   // React to browser back/forward.
   useEffect(() => {
     function onPop() {
-      setView(window.location.pathname === "/docs" ? "docs" : prevMain);
+      setView(window.location.pathname.startsWith("/docs") ? "docs" : prevMain);
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
