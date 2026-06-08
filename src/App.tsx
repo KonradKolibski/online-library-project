@@ -9,13 +9,14 @@ import { HomePage } from "@/pages/HomePage";
 import { DiscoverPage } from "@/pages/DiscoverPage";
 import { StatsPage } from "@/pages/StatsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { DocsPage } from "@/pages/DocsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { Blobs } from "@/components/illustrations/Blobs";
 import { Onboarding, hasOnboarded } from "@/components/onboarding/Onboarding";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export type MainView = "home" | "library" | "discover" | "stats";
-export type AppView = MainView | "settings";
+export type AppView = MainView | "settings" | "docs";
 
 function AuthedApp() {
   const [view, setView] = useState<AppView>("library");
@@ -23,8 +24,13 @@ function AuthedApp() {
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
 
   function openSettings() {
-    if (view !== "settings") setPrevMain(view as MainView);
+    if (view !== "settings" && view !== "docs") setPrevMain(view as MainView);
     setView("settings");
+  }
+
+  function openDocs() {
+    if (view !== "settings" && view !== "docs") setPrevMain(view as MainView);
+    setView("docs");
   }
 
   function navigate(v: MainView) {
@@ -41,9 +47,12 @@ function AuthedApp() {
             currentView={view}
             onNavigate={navigate}
             onOpenSettings={openSettings}
+            onOpenDocs={openDocs}
           >
             {view === "settings" ? (
               <SettingsPage onBack={() => setView(prevMain)} />
+            ) : view === "docs" ? (
+              <DocsPage onBack={() => setView(prevMain)} />
             ) : view === "home" ? (
               <HomePage onNavigate={navigate} onOpenSettings={openSettings} />
             ) : view === "discover" ? (
