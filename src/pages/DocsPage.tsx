@@ -1,24 +1,32 @@
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiTokenManager } from "@/components/docs/ApiTokenManager";
-import { ApiReference } from "@/components/docs/ApiReference";
-import { McpReference } from "@/components/docs/McpReference";
-import { cn } from "@/lib/utils";
-
-export type DocsTab = "api" | "mcp";
+import { DocsReference, type DocGroup } from "@/components/docs/DocsReference";
+import { apiSections } from "@/components/docs/ApiReference";
+import { mcpSections } from "@/components/docs/McpReference";
 
 interface DocsPageProps {
   onBack: () => void;
-  tab: DocsTab;
-  onTabChange: (tab: DocsTab) => void;
 }
 
-const TABS: { id: DocsTab; label: string }[] = [
-  { id: "api", label: "REST API" },
-  { id: "mcp", label: "MCP server" },
+const GROUPS: DocGroup[] = [
+  {
+    label: "API",
+    title: "REST API",
+    description:
+      "Control a user's library over HTTP — add books, log sessions, read the collection, and ask for recommendations.",
+    sections: apiSections,
+  },
+  {
+    label: "MCP",
+    title: "MCP server",
+    description:
+      "Connect an AI agent directly to the library through the Model Context Protocol.",
+    sections: mcpSections,
+  },
 ];
 
-export function DocsPage({ onBack, tab, onTabChange }: DocsPageProps) {
+export function DocsPage({ onBack }: DocsPageProps) {
   return (
     <div className="flex flex-col gap-5 pb-8">
       {/* Top bar */}
@@ -29,44 +37,7 @@ export function DocsPage({ onBack, tab, onTabChange }: DocsPageProps) {
         <h1 className="text-2xl font-semibold tracking-tight">Developer documentation</h1>
       </div>
 
-      {/* Shared token generator — present on both tabs */}
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="rounded-lg bg-primary/10 p-2 text-primary">
-            <KeyRound className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">API tokens</p>
-            <p className="text-xs text-muted-foreground">
-              Generate a Personal Access Token to use with the API and MCP server.
-            </p>
-          </div>
-        </div>
-        <ApiTokenManager />
-      </div>
-
-      {/* API / MCP tabs */}
-      <div className="flex gap-1 rounded-xl border border-border bg-muted/40 p-1">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onTabChange(t.id)}
-            className={cn(
-              "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              tab === t.id
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            aria-current={tab === t.id ? "page" : undefined}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Active reference */}
-      {tab === "api" ? <ApiReference /> : <McpReference />}
+      <DocsReference groups={GROUPS} sidebarTop={<ApiTokenManager />} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { HomePage } from "@/pages/HomePage";
 import { DiscoverPage } from "@/pages/DiscoverPage";
 import { StatsPage } from "@/pages/StatsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
-import { DocsPage, type DocsTab } from "@/pages/DocsPage";
+import { DocsPage } from "@/pages/DocsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { Blobs } from "@/components/illustrations/Blobs";
 import { Onboarding, hasOnboarded } from "@/components/onboarding/Onboarding";
@@ -18,42 +18,28 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 export type MainView = "home" | "library" | "discover" | "stats";
 export type AppView = MainView | "settings" | "docs";
 
-// Parse a path into the docs view + tab. The docs section owns `/docs`,
-// `/docs/api`, and `/docs/mcp`; everything else lives at `/`.
-function docsTabFromPath(path: string): DocsTab | null {
-  if (path === "/docs/mcp") return "mcp";
-  if (path === "/docs" || path === "/docs/api") return "api";
-  return null;
-}
-
 function AuthedApp() {
-  // The Docs page is the one view with its own URL; everything else lives at `/`.
-  // We keep `view` as the source of truth and sync the path with the History API
-  // so /docs/api and /docs/mcp are shareable and survive reload.
-  const initialTab = docsTabFromPath(window.location.pathname);
-  const [view, setView] = useState<AppView>(initialTab ? "docs" : "library");
-  const [docsTab, setDocsTab] = useState<DocsTab>(initialTab ?? "api");
+  // The Docs page is the one view with its own URL (`/docs`); everything else
+  // lives at `/`. We keep `view` as the source of truth and sync the path with
+  // the History API so /docs is shareable and survives reload.
+  const [view, setView] = useState<AppView>(() =>
+    window.location.pathname.startsWith("/docs") ? "docs" : "library",
+  );
   const [prevMain, setPrevMain] = useState<MainView>("library");
   const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
 
-  // Keep the URL in sync with the current view + docs tab.
+  // Keep the URL in sync with the current view.
   useEffect(() => {
-    const target = view === "docs" ? `/docs/${docsTab}` : "/";
+    const target = view === "docs" ? "/docs" : "/";
     if (window.location.pathname !== target) {
       window.history.pushState({}, "", target);
     }
-  }, [view, docsTab]);
+  }, [view]);
 
   // React to browser back/forward.
   useEffect(() => {
     function onPop() {
-      const tab = docsTabFromPath(window.location.pathname);
-      if (tab) {
-        setView("docs");
-        setDocsTab(tab);
-      } else {
-        setView(prevMain);
-      }
+      setView(window.location.pathname.startsWith("/docs") ? "docs" : prevMain);
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -88,11 +74,7 @@ function AuthedApp() {
             {view === "settings" ? (
               <SettingsPage onBack={() => setView(prevMain)} />
             ) : view === "docs" ? (
-              <DocsPage
-                onBack={() => setView(prevMain)}
-                tab={docsTab}
-                onTabChange={setDocsTab}
-              />
+              <DocsPage onBack={() => setView(prevMain)} />
             ) : view === "home" ? (
               <HomePage onNavigate={navigate} onOpenSettings={openSettings} />
             ) : view === "discover" ? (

@@ -1,9 +1,9 @@
 import { CodeBlock } from "@/components/docs/CodeBlock";
-import { DocsReference, Endpoint, type DocSection } from "@/components/docs/DocsReference";
+import { Endpoint, type DocSection } from "@/components/docs/DocsReference";
 
 const BASE = `${import.meta.env.VITE_SUPABASE_URL ?? "https://<project>.supabase.co"}/functions/v1/api`;
 
-const SECTIONS: DocSection[] = [
+export const apiSections: DocSection[] = [
   {
     id: "overview",
     label: "Overview",
@@ -34,7 +34,7 @@ const SECTIONS: DocSection[] = [
         <p className="text-sm text-muted-foreground">
           Authenticate every request with a Personal Access Token in the{" "}
           <code className="font-mono">Authorization</code> header. Generate one using
-          the <strong>token field at the top of this page</strong>.
+          the <strong>access-token panel in the sidebar</strong>.
         </p>
         <CodeBlock language="Header" code={`Authorization: Bearer lib_sk_xxxxxxxxxxxxxxxx`} />
         <p className="text-sm text-muted-foreground">
@@ -184,6 +184,3 @@ const SECTIONS: DocSection[] = [
   },
 ];
 
-export function ApiReference() {
-  return <DocsReference navLabel="API reference" sections={SECTIONS} />;
-}

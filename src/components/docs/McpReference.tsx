@@ -1,5 +1,5 @@
 import { CodeBlock } from "@/components/docs/CodeBlock";
-import { DocsReference, type DocSection } from "@/components/docs/DocsReference";
+import { type DocSection } from "@/components/docs/DocsReference";
 
 const MCP_URL =
   typeof window !== "undefined"
@@ -33,7 +33,7 @@ function Tool({
   );
 }
 
-const SECTIONS: DocSection[] = [
+export const mcpSections: DocSection[] = [
   {
     id: "overview",
     label: "Overview",
@@ -55,7 +55,7 @@ const SECTIONS: DocSection[] = [
           <li>
             • <strong>Auth:</strong> a Personal Access Token (
             <code className="font-mono">lib_sk_…</code>) sent as a Bearer header —
-            generate one with the token field at the top of this page.
+            generate one with the access-token panel in the sidebar.
           </li>
           <li>
             • <strong>Scope:</strong> every tool acts only on the library that owns the
@@ -181,7 +181,3 @@ then recommend three similar books I don't own yet.`}
     ),
   },
 ];
-
-export function McpReference() {
-  return <DocsReference navLabel="MCP reference" sections={SECTIONS} />;
-}

@@ -24,104 +24,140 @@ export interface DocSection {
   content: ReactNode;
 }
 
+export interface DocGroup {
+  /** Short label shown as the nav heading, e.g. "API". */
+  label: string;
+  /** Large page title shown at the top of the content, e.g. "REST API". */
+  title: string;
+  /** Optional one-line intro under the page title. */
+  description?: string;
+  sections: DocSection[];
+}
+
 /**
- * Vercel-docs-style two-column reference: a sticky left section nav (with a
- * mobile horizontal selector) and a scroll-spy-highlighted content column.
- * Shared by the API and MCP reference pages.
+ * Vercel-docs-style docs shell. The left column holds the access-token panel and
+ * a grouped nav that switches between separate pages (API / MCP) — only the
+ * active page's sections render, and scroll-spy highlights the section in view.
  */
 export function DocsReference({
-  navLabel,
-  sections,
+  groups,
+  sidebarTop,
 }: {
-  navLabel: string;
-  sections: DocSection[];
+  groups: DocGroup[];
+  sidebarTop?: ReactNode;
 }) {
-  const [active, setActive] = useState<string>(sections[0]?.id ?? "");
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeSection, setActiveSection] = useState(groups[0]?.sections[0]?.id ?? "");
+  const pendingScroll = useRef<string | null>(null);
   const refMap = useRef<Record<string, HTMLElement | null>>({});
+  const activeGroup = groups[activeIdx];
 
+  // After switching page, jump to the requested section (or the top).
+  useEffect(() => {
+    const id = pendingScroll.current;
+    if (id) {
+      pendingScroll.current = null;
+      setActiveSection(id);
+      requestAnimationFrame(() =>
+        refMap.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      );
+    } else {
+      setActiveSection(activeGroup?.sections[0]?.id ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
+
+  // Scroll-spy across the active page's sections only.
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) setActive(e.target.id);
+          if (e.isIntersecting) setActiveSection(e.target.id);
         }
       },
       { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
     );
-    for (const s of sections) {
+    for (const s of activeGroup?.sections ?? []) {
       const el = refMap.current[s.id];
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
-  }, [sections]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
 
-  function go(id: string) {
-    setActive(id);
-    refMap.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function go(groupIdx: number, id: string) {
+    if (groupIdx !== activeIdx) {
+      pendingScroll.current = id;
+      setActiveIdx(groupIdx);
+    } else {
+      setActiveSection(id);
+      refMap.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Mobile section selector */}
-      <nav className="md:hidden -mx-4 overflow-x-auto px-4">
-        <ul className="flex gap-2">
-          {sections.map((s) => (
-            <li key={s.id}>
+    <div className="flex flex-col gap-8 md:flex-row">
+      {/* Left column: token panel + grouped nav */}
+      <aside className="w-full shrink-0 md:w-64">
+        <div className="md:sticky md:top-20 space-y-6">
+          {sidebarTop}
+          {groups.map((g, gi) => (
+            <div key={g.label}>
               <button
                 type="button"
-                onClick={() => go(s.id)}
+                onClick={() => go(gi, g.sections[0]?.id ?? "")}
                 className={cn(
-                  "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                  active === s.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent/50",
+                  "px-3 pb-1.5 text-xs font-semibold uppercase tracking-wide transition-colors",
+                  gi === activeIdx
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {s.label}
+                {g.label}
               </button>
-            </li>
+              <ul className="space-y-0.5">
+                {g.sections.map((s) => {
+                  const isActive = gi === activeIdx && activeSection === s.id;
+                  return (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => go(gi, s.id)}
+                        className={cn(
+                          "w-full rounded-lg border-l-2 px-3 py-1.5 text-left text-sm transition-colors",
+                          isActive
+                            ? "border-primary bg-primary/5 font-medium text-primary"
+                            : "border-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                        )}
+                      >
+                        {s.label}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           ))}
-        </ul>
-      </nav>
+        </div>
+      </aside>
 
-      <div className="flex gap-8">
-        {/* Left nav (desktop) */}
-        <aside className="hidden md:block w-52 shrink-0">
-          <nav className="sticky top-20">
-            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {navLabel}
-            </p>
-            <ul className="space-y-0.5">
-              {sections.map((s) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onClick={() => go(s.id)}
-                    className={cn(
-                      "w-full rounded-lg border-l-2 px-3 py-1.5 text-left text-sm transition-colors",
-                      active === s.id
-                        ? "border-primary bg-primary/5 font-medium text-primary"
-                        : "border-transparent text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                    )}
-                  >
-                    {s.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </aside>
-
-        {/* Content */}
-        <div className="min-w-0 flex-1 space-y-10">
-          {sections.map((s) => (
+      {/* Content — only the active page */}
+      <div className="min-w-0 flex-1">
+        <div className="mb-8 space-y-1.5 border-b border-border pb-5">
+          <h2 className="text-3xl font-bold tracking-tight">{activeGroup?.title}</h2>
+          {activeGroup?.description && (
+            <p className="text-sm text-muted-foreground">{activeGroup.description}</p>
+          )}
+        </div>
+        <div className="space-y-10">
+          {activeGroup?.sections.map((s) => (
             <section
               key={s.id}
               id={s.id}
               ref={(el) => (refMap.current[s.id] = el)}
               className="scroll-mt-20 space-y-4 border-b border-border/60 pb-10 last:border-0"
             >
-              <h2 className="text-xl font-semibold tracking-tight">{s.title}</h2>
+              <h3 className="text-xl font-semibold tracking-tight">{s.title}</h3>
               {s.content}
             </section>
           ))}
