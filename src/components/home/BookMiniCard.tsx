@@ -38,7 +38,10 @@ export function BookMiniCard({ book, onClick, showProgress }: BookMiniCardProps)
         rounded="rounded-xl"
         className="shadow-sm group-hover:shadow-md transition-shadow"
       />
-      <p className="mt-2 text-sm font-medium leading-tight line-clamp-2">
+      {/* Reserve two lines of height so 1-line and 2-line titles produce
+        equal-height cards — keeps authors and progress bars aligned across
+        the row. Still clamps at 2 lines for very long titles. */}
+      <p className="mt-2 text-sm font-medium leading-tight line-clamp-2 min-h-[2.25rem]">
         {book.title}
       </p>
       <p className="text-xs text-muted-foreground line-clamp-1">
