@@ -36,9 +36,15 @@ export function HomePage({ onNavigate }: HomePageProps) {
     ? state.books.find((b) => b.id === selected.id) ?? null
     : null;
 
-  /** Set of YYYY-MM-DD strings the user has at least one session for. */
-  const sessionDates = useMemo(() => {
-    return new Set(state.sessions.map((s) => s.date));
+  /** Session-derived signals: the set of read-day keys + total minutes logged. */
+  const { sessionDates, totalMinutes } = useMemo(() => {
+    return {
+      sessionDates: new Set(state.sessions.map((s) => s.date)),
+      totalMinutes: state.sessions.reduce(
+        (acc, s) => acc + (typeof s.minutes === "number" ? s.minutes : 0),
+        0,
+      ),
+    };
   }, [state.sessions]);
 
   const {
@@ -48,6 +54,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
     favouriteAuthors,
     booksThisYear,
     pagesThisYear,
+    totalBooksRead,
   } = useMemo(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -100,6 +107,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       favouriteAuthors: ranked,
       booksThisYear: finishedYr.length,
       pagesThisYear: pagesYr,
+      totalBooksRead: finished.length,
     };
     // We intentionally include `state.books` only — Math.random is non-pure
     // but we want a fresh featured pick whenever the book set changes.
@@ -111,6 +119,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
       <div className="flex flex-col gap-6">
         <WeekStrip
           sessionDates={sessionDates}
+          totalBooksRead={totalBooksRead}
+          totalMinutes={totalMinutes}
           onLogReading={() => setLogOpen(true)}
         />
         <WelcomeHero variant="empty" name={settings.name} onAddBook={openAddBook} />
@@ -135,6 +145,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
     <div className="flex flex-col gap-6">
       <WeekStrip
         sessionDates={sessionDates}
+        totalBooksRead={totalBooksRead}
+        totalMinutes={totalMinutes}
         onLogReading={() => setLogOpen(true)}
       />
       <WelcomeHero variant="returning" name={settings.name} />
@@ -174,10 +186,16 @@ interface DashboardGridProps {
 }
 
 /**
- * Two-column responsive layout — on lg+ the left column carries the wider
- * sections (currently reading, weekly goal mockup, KPI row) while the right
- * column stacks the narrower picks (featured book, favourite authors). On
- * smaller screens everything collapses into a single vertical flow.
+ * Responsive dashboard layout. Rather than two independent flex columns (which
+ * let the left and right stacks drift out of vertical alignment), we use a
+ * single CSS grid with explicit placement so paired sections share a real grid
+ * row. `items-start` then tops them off together:
+ *
+ *   Row 1: Currently reading (2 cols)   |  Featured pick (1 col)
+ *   Row 2: Weekly reading goal (2 cols) |  Favourite authors (1 col)  ← aligned
+ *   Row 3: KPI stats (2 cols)
+ *
+ * On small screens it collapses to a single column in source order.
  */
 function DashboardGrid({
   readingBooks,
@@ -190,22 +208,30 @@ function DashboardGrid({
   onSelect,
 }: DashboardGridProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left column — main flow */}
-      <div className="lg:col-span-2 flex flex-col gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* Row 1 */}
+      <div className="lg:col-span-2">
         <CurrentlyReadingRow books={readingBooks} onSelect={onSelect} />
+      </div>
+      <div className="lg:col-span-1">
+        <WeeklyFeaturedBook book={featuredBook} onSelect={onSelect} />
+      </div>
+
+      {/* Row 2 — these two share a grid row, so they always top-align */}
+      <div className="lg:col-span-2">
         <WeeklyReadingGoalCard books={goalBooks} onSelect={onSelect} />
+      </div>
+      <div className="lg:col-span-1">
+        <FavouriteAuthorsCard authors={favouriteAuthors} />
+      </div>
+
+      {/* Row 3 */}
+      <div className="lg:col-span-2">
         <StatsHighlights
           booksThisYear={booksThisYear}
           pagesThisYear={pagesThisYear}
           totalBooks={totalBooks}
         />
-      </div>
-
-      {/* Right column — featured + authors */}
-      <div className="flex flex-col gap-6">
-        <WeeklyFeaturedBook book={featuredBook} onSelect={onSelect} />
-        <FavouriteAuthorsCard authors={favouriteAuthors} />
       </div>
     </div>
   );

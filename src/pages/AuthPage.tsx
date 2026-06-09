@@ -8,7 +8,7 @@ import { useAuth } from "@/store/auth";
 type Mode = "login" | "register";
 
 export function AuthPage() {
-  const { signInWithPassword, signUp, signInWithGoogle } = useAuth();
+  const { signInWithPassword, signUp } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,17 +35,6 @@ export function AuthPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleGoogle() {
-    setError(null);
-    setBusy(true);
-    try {
-      await signInWithGoogle();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google sign-in failed.");
       setBusy(false);
     }
   }
@@ -138,20 +127,6 @@ export function AuthPage() {
                 : "Create account"}
           </Button>
         </form>
-
-        <div className="relative text-center text-xs uppercase tracking-wide text-muted-foreground">
-          <span className="bg-card px-2 relative z-10">or</span>
-          <span className="absolute inset-x-0 top-1/2 h-px bg-border -z-0" />
-        </div>
-
-        <Button
-          variant="outline"
-          type="button"
-          onClick={handleGoogle}
-          disabled={busy}
-        >
-          Continue with Google
-        </Button>
       </div>
     </div>
   );
