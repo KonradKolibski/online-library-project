@@ -20,6 +20,7 @@ const BarcodeScanner = lazy(() =>
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { AnimatedTabs } from "@/components/ui/animated-tabs";
 import { fetchWorkDescription, searchByIsbn } from "@/lib/openLibrary";
+import { uploadCover } from "@/lib/coverStorage";
 import { cn } from "@/lib/utils";
 
 function LabelWithInfo({
@@ -70,6 +71,7 @@ export function BookForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [author, setAuthor] = useState(initial?.author ?? "");
   const [coverUrl, setCoverUrl] = useState(initial?.coverUrl ?? "");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [categoryIds, setCategoryIds] = useState<string[]>(
     initial?.categoryIds ?? [],
   );
@@ -213,12 +215,19 @@ export function BookForm({
       });
   }
 
-  function handleFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") setCoverUrl(reader.result);
-    };
-    reader.readAsDataURL(file);
+  async function handleFile(file: File) {
+    setScanNotice(null);
+    setCoverUploading(true);
+    try {
+      const url = await uploadCover(file);
+      setCoverUrl(url);
+    } catch (err) {
+      setScanNotice(
+        err instanceof Error ? err.message : "Failed to upload cover.",
+      );
+    } finally {
+      setCoverUploading(false);
+    }
   }
 
   function buildInput(): BookInput {
@@ -241,6 +250,7 @@ export function BookForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (coverUploading) return;
     if (!title.trim() || !author.trim()) {
       setError("Title and author are required.");
       return;
@@ -326,10 +336,15 @@ export function BookForm({
               type="button"
               variant="outline"
               size="sm"
+              disabled={coverUploading}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="h-4 w-4" />
-              Upload cover
+              {coverUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {coverUploading ? "Uploading…" : "Upload cover"}
             </Button>
             <input
               ref={fileInputRef}
@@ -562,6 +577,7 @@ export function BookForm({
             <Button
               type="button"
               variant="outline"
+              disabled={coverUploading}
               onClick={() => {
                 if (!title.trim() || !author.trim()) {
                   setError("Title and author are required.");
@@ -580,7 +596,9 @@ export function BookForm({
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit">{initial ? "Save changes" : "Save"}</Button>
+          <Button type="submit" disabled={coverUploading}>
+            {initial ? "Save changes" : "Save"}
+          </Button>
         </div>
       </div>
     </form>
