@@ -3,13 +3,14 @@
 // The Discover agent. Powered by Grok (xAI), grounded in the user's library AND
 // — via tool-calling — their reading journal. The browser sends the running
 // conversation plus a compact projection of the user's library; the agent may
-// call `search_reading_sessions` (hybrid full-text + semantic search over the
-// user's sessions) before producing a conversational reply plus, when relevant,
-// structured book recommendations.
+// call `search_reading_sessions` (hybrid full-text + semantic retrieval) and/or
+// `get_reading_stats` (aggregate totals/counts) before producing a conversational
+// reply plus, when relevant, structured book recommendations.
 //
 // Secrets (server-side only, never bundled):
 //   XAI_API_KEY     — Grok access (set via `supabase secrets set`)
-//   OPENAI_API_KEY  — query embeddings for the session search tool
+//   OPENAI_API_KEY  — query embeddings for the session search tool (stats work
+//                     without it)
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
@@ -18,9 +19,10 @@ import {
   cleanMessages,
   type CompactBook,
   MAX_PROFILE_BOOKS,
-  type AgentSessionHit,
+  type AgentTools,
 } from "../_shared/grok.ts";
 import { searchSessions } from "../_shared/sessionSearch.ts";
+import { getReadingStats } from "../_shared/readingStats.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -70,13 +72,16 @@ Deno.serve(async (req) => {
     return json({ error: "No conversation messages provided." }, 400);
   }
 
-  // Wire the session-search tool — only when we can actually embed queries.
-  let searchTool: ((query: string) => Promise<AgentSessionHit[]>) | undefined;
+  // Wire the agent's tools. Stats are always available; session search needs
+  // OpenAI for query embeddings.
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const agentTools: AgentTools = {
+    getReadingStats: () => getReadingStats(admin, uid),
+  };
   if (openaiKey) {
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    searchTool = async (query: string) => {
+    agentTools.searchSessions = async (query: string) => {
       const hits = await searchSessions(admin, openaiKey, uid, query);
       return hits.map((h) => ({
         date: h.date,
@@ -93,7 +98,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const result = await askGrok(xaiKey, clean, profile.slice(0, MAX_PROFILE_BOOKS), searchTool);
+    const result = await askGrok(xaiKey, clean, profile.slice(0, MAX_PROFILE_BOOKS), agentTools);
     return json(result);
   } catch (err) {
     console.error("[ai-recommend] agent call failed:", err);
