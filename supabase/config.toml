@@ -14,3 +14,9 @@ verify_jwt = true
 # First-party recommendation chat called from the browser with the anon key.
 [functions.ai-recommend]
 verify_jwt = true
+
+# First-party hybrid session search called from the browser with the user's JWT.
+# The function resolves the user via auth.getUser() and embeds the query with the
+# server-side OPENAI_API_KEY secret.
+[functions.search-sessions]
+verify_jwt = true
