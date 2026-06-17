@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, Check, Clock, Flame, Plus } from "lucide-react";
+import { BookOpen, Check, Clock, Flame, History, Plus } from "lucide-react";
 import {
   currentWeek,
   detectFirstDayOfWeek,
@@ -18,6 +18,8 @@ interface WeekStripProps {
   totalMinutes: number;
   /** Triggered by the log-reading button. */
   onLogReading: () => void;
+  /** Opens the browse-all-sessions modal. */
+  onBrowseSessions: () => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export function WeekStrip({
   totalBooksRead,
   totalMinutes,
   onLogReading,
+  onBrowseSessions,
 }: WeekStripProps) {
   const { days, todayKey, streak, firstKey } = useMemo(() => {
     const fdow = detectFirstDayOfWeek();
@@ -69,6 +72,15 @@ export function WeekStrip({
               value={formatMinutes(totalMinutes)}
               tip="Total time you've logged across all reading sessions."
             />
+            <button
+              type="button"
+              onClick={onBrowseSessions}
+              aria-label="Browse all reading sessions"
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">All sessions</span>
+            </button>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { placeholderColors } from "@/lib/placeholder";
+import { initials, placeholderColors } from "@/lib/placeholder";
 import { cn } from "@/lib/utils";
 
 interface CoverImageProps {
@@ -32,14 +32,27 @@ export function CoverImage({ title, src, className, rounded = "rounded-xl" }: Co
           loading="lazy"
         />
       ) : (
-        <div
-          className="absolute inset-0 flex items-center justify-center p-3 text-center"
-          style={{ color: foreground }}
+        // Initials rendered as SVG text so they scale with the cover — sharp and
+        // proportional whether it's a 7px session thumbnail or the detail view.
+        <svg
+          viewBox="0 0 30 40"
+          className="absolute inset-0 h-full w-full"
+          role="img"
+          aria-label={title || "Untitled"}
         >
-          <span className="font-semibold leading-tight text-sm sm:text-base line-clamp-4">
-            {title || "Untitled"}
-          </span>
-        </div>
+          <text
+            x="15"
+            y="20"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="13"
+            fontWeight="600"
+            letterSpacing="0.5"
+            fill={foreground}
+          >
+            {initials(title)}
+          </text>
+        </svg>
       )}
     </div>
   );

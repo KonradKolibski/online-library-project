@@ -8,6 +8,7 @@ import { BookDetail } from "@/components/book/BookDetail";
 import { WelcomeHero } from "@/components/home/WelcomeHero";
 import { WeekStrip } from "@/components/home/WeekStrip";
 import { LogReadingDialog } from "@/components/home/LogReadingDialog";
+import { ReadingSessionsDialog } from "@/components/home/ReadingSessionsDialog";
 import { CurrentlyReadingRow } from "@/components/home/CurrentlyReadingRow";
 import { WeeklyFeaturedBook } from "@/components/home/WeeklyFeaturedBook";
 import { WeeklyReadingGoalCard } from "@/components/home/WeeklyReadingGoalCard";
@@ -32,6 +33,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
   const [selected, setSelected] = useState<Book | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const selectedLive = selected
     ? state.books.find((b) => b.id === selected.id) ?? null
     : null;
@@ -122,6 +124,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           totalBooksRead={totalBooksRead}
           totalMinutes={totalMinutes}
           onLogReading={() => setLogOpen(true)}
+          onBrowseSessions={() => setSessionsOpen(true)}
         />
         <WelcomeHero variant="empty" name={settings.name} onAddBook={openAddBook} />
         {/* Mockup sections still render — gives the user a preview of what's coming. */}
@@ -136,6 +139,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           onSelect={setSelected}
         />
         <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
+        <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
       </div>
     );
   }
@@ -148,6 +152,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
         totalBooksRead={totalBooksRead}
         totalMinutes={totalMinutes}
         onLogReading={() => setLogOpen(true)}
+        onBrowseSessions={() => setSessionsOpen(true)}
       />
       <WelcomeHero variant="returning" name={settings.name} />
       <DashboardGrid
@@ -170,6 +175,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       )}
 
       <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
+      <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
     </div>
   );
 }
