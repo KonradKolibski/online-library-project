@@ -5,6 +5,7 @@ import {
   User,
   BookOpen,
   Library,
+  History,
   Bell,
   Database,
   Download,
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CategoryManager } from "@/components/settings/CategoryManager";
 import { ShelfManager } from "@/components/settings/ShelfManager";
+import { ReadingSessionsDialog } from "@/components/home/ReadingSessionsDialog";
 import { useSettings } from "@/store/settings";
 import { useLibrary } from "@/store/library";
 import { useAuth } from "@/store/auth";
@@ -27,10 +29,14 @@ interface SettingsPageProps {
 
 type ActiveSection = "profile" | "library" | "shelves" | "notifications" | "data" | null;
 
+/** Menu ids — the inline sub-sections plus "sessions", which opens a modal
+ *  rather than navigating into a sub-screen. */
+type MenuId = Exclude<ActiveSection, null> | "sessions";
+
 // ─── Menu list ────────────────────────────────────────────────────────────────
 
 const MENU_ITEMS: {
-  id: ActiveSection & string;
+  id: MenuId;
   icon: React.ElementType;
   title: string;
   description: string;
@@ -53,6 +59,12 @@ const MENU_ITEMS: {
     icon: Library,
     title: "Shelves",
     description: "Create and manage your personal collections",
+  },
+  {
+    id: "sessions",
+    icon: History,
+    title: "Reading sessions",
+    description: "Browse and search through all your logged sessions",
   },
   {
     id: "notifications",
@@ -293,6 +305,15 @@ const SECTION_COMPONENTS: Record<string, React.ElementType> = {
 
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [active, setActive] = useState<ActiveSection>(null);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+
+  function handleSelect(id: MenuId) {
+    if (id === "sessions") {
+      setSessionsOpen(true);
+      return;
+    }
+    setActive(id);
+  }
 
   const activeItem = MENU_ITEMS.find((m) => m.id === active);
   const ActiveIcon = activeItem ? activeItem.icon : null;
@@ -325,7 +346,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
             <li key={id}>
               <button
                 type="button"
-                onClick={() => !comingSoon && setActive(id as ActiveSection)}
+                onClick={() => !comingSoon && handleSelect(id)}
                 className={cn(
                   "w-full flex items-center gap-4 rounded-2xl bg-card border border-border p-4 text-left transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -358,6 +379,10 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
 
       {/* Active section content */}
       {ActiveSection && <ActiveSection />}
+
+      {/* Reading sessions browser — opened from the menu, shown as a modal
+        (full-screen on mobile) rather than an inline sub-section. */}
+      <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
     </div>
   );
 }
