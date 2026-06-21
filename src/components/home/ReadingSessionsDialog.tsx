@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -22,6 +22,8 @@ import { useDebounced } from "@/hooks/useDebounced";
 interface ReadingSessionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, the dialog opens straight to this session's read-only preview. */
+  initialSessionId?: string | null;
 }
 
 const MOOD_META: Record<SessionMood, { emoji: string; label: string }> = {
@@ -48,12 +50,18 @@ const MOOD_OPTIONS = (Object.keys(MOOD_META) as SessionMood[]).map((value) => ({
 export function ReadingSessionsDialog({
   open,
   onOpenChange,
+  initialSessionId,
 }: ReadingSessionsDialogProps) {
   const { state } = useLibrary();
   const [query, setQuery] = useState("");
   const [mood, setMood] = useState<SessionMood | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const debouncedQuery = useDebounced(query, 200);
+
+  // On open, jump straight to a specific session's preview when requested.
+  useEffect(() => {
+    if (open) setSelectedId(initialSessionId ?? null);
+  }, [open, initialSessionId]);
 
   // Quick book lookup by id for titles / covers / authors.
   const bookById = useMemo(
@@ -107,7 +115,7 @@ export function ReadingSessionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl sm:max-h-[85vh] flex flex-col gap-0 p-0">
+      <DialogContent className="sm:max-w-2xl flex flex-col gap-0 p-0">
         {selected ? (
           <SessionDetail
             session={selected}

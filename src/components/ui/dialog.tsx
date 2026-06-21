@@ -33,9 +33,13 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         // Mobile: full-screen sheet — no rounded corners, no border, fills viewport.
-        "fixed inset-0 z-50 grid w-full gap-4 bg-card p-6 shadow-xl overflow-y-auto duration-200",
-        // Desktop (sm+): centred dialog with max width/height and rounded corners.
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:max-h-[90vh] sm:border sm:rounded-2xl",
+        // flex-col (not grid) so content tops out instead of being distributed
+        // across the fixed height.
+        "fixed inset-0 z-50 flex flex-col w-full gap-4 bg-card p-6 shadow-xl overflow-y-auto duration-200",
+        // Desktop (sm+): centred dialog with rounded corners and a *fixed*
+        // viewport-relative height (90vh) so the modal stays the same size and
+        // never resizes/flickers to its content (e.g. when filtering a list).
+        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:h-[90vh] sm:border sm:rounded-2xl",
         // Open/close animations — fade-only on mobile (zoom looks odd on a
         // full-screen surface), zoom + fade on desktop.
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

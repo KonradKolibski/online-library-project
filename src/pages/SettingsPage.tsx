@@ -15,6 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CategoryManager } from "@/components/settings/CategoryManager";
 import { ShelfManager } from "@/components/settings/ShelfManager";
 import { ReadingSessionsDialog } from "@/components/home/ReadingSessionsDialog";
@@ -91,7 +98,6 @@ function SectionContent({ children }: { children: React.ReactNode }) {
 
 function ProfileSection() {
   const { settings, update } = useSettings();
-  const { user, signOut } = useAuth();
   const [name, setName] = useState(settings.name);
   const [goal, setGoal] = useState(
     settings.readingGoal !== null ? String(settings.readingGoal) : "",
@@ -156,25 +162,6 @@ function ProfileSection() {
       <div className="flex justify-end">
         <Button onClick={handleSave} size="sm">
           Save profile
-        </Button>
-      </div>
-
-      <div className="mt-2 flex items-center justify-between rounded-xl border border-border bg-card p-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Account</p>
-          <p className="text-xs text-muted-foreground truncate">
-            {user?.email ?? "Signed in"}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            void signOut();
-          }}
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
         </Button>
       </div>
     </SectionContent>
@@ -306,6 +293,8 @@ const SECTION_COMPONENTS: Record<string, React.ElementType> = {
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [active, setActive] = useState<ActiveSection>(null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const { user } = useAuth();
 
   function handleSelect(id: MenuId) {
     if (id === "sessions") {
@@ -377,12 +366,71 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         </ul>
       )}
 
+      {/* Sign out — lives on the settings root, gated behind a confirmation. */}
+      {!active && (
+        <button
+          type="button"
+          onClick={() => setSignOutOpen(true)}
+          className={cn(
+            "w-full flex items-center gap-4 rounded-2xl bg-card border border-border p-4 text-left transition-colors",
+            "hover:bg-destructive/5 hover:border-destructive/30",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <div className="rounded-xl bg-destructive/10 p-2.5 text-destructive shrink-0">
+            <LogOut className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm">Sign out</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {user?.email ?? "Sign out of your account"}
+            </p>
+          </div>
+        </button>
+      )}
+
       {/* Active section content */}
       {ActiveSection && <ActiveSection />}
 
       {/* Reading sessions browser — opened from the menu, shown as a modal
         (full-screen on mobile) rather than an inline sub-section. */}
       <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+
+      {/* Sign-out confirmation */}
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} />
     </div>
+  );
+}
+
+// ─── Sign-out confirmation ──────────────────────────────────────────────────
+
+function SignOutDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { signOut } = useAuth();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:h-auto sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Sign out?</DialogTitle>
+          <DialogDescription>
+            You&apos;ll need to sign in again to get back to your library.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={() => void signOut()}>
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -168,10 +168,10 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
         onOpenChange(o);
       }}
     >
-      <DialogContent>
+      <DialogContent className={mode === "edit" ? "gap-0 p-0" : undefined}>
         {mode === "edit" ? (
           <>
-            <DialogHeader>
+            <DialogHeader className="px-6 pt-6 pb-4">
               <DialogTitle>Edit book</DialogTitle>
             </DialogHeader>
             <BookForm
@@ -272,7 +272,7 @@ export function BookDetail({ book, open, onOpenChange }: BookDetailProps) {
                   aria-label="Reading progress"
                 />
                 <p className="text-center text-xs tabular-nums text-muted-foreground">
-                  {draftProgress}% read
+                  {Math.round(draftProgress)}% read
                 </p>
               </div>
             )}

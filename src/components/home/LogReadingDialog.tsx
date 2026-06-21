@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 import type { Book, SessionMood } from "@/types/book";
 import { useLibrary } from "@/store/library";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ interface DraftBook {
   newProgress: number;
 }
 
+type Step = 1 | 2;
+
 const MOODS: { value: SessionMood; emoji: string; label: string }[] = [
   { value: "happy", emoji: "😊", label: "Happy" },
   { value: "thoughtful", emoji: "🤔", label: "Thoughtful" },
@@ -36,42 +38,61 @@ const MOODS: { value: SessionMood; emoji: string; label: string }[] = [
 ];
 
 export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) {
-  const { state, addSession } = useLibrary();
+  const { state, addSession, deleteSession } = useLibrary();
   const today = useMemo(() => localDateString(new Date()), []);
 
-  // Default-include currently-reading books when the modal opens.
-  const initialDrafts = useMemo<DraftBook[]>(
-    () =>
-      state.books
-        .filter((b) => b.status === "reading")
-        .map((b) => ({ bookId: b.id, newProgress: b.progress ?? 0 })),
-    // We only want this list at *open* time, not whenever the books update.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [open],
-  );
-
-  const [drafts, setDrafts] = useState<DraftBook[]>(initialDrafts);
+  const [step, setStep] = useState<Step>(1);
+  const [saved, setSaved] = useState(false);
+  // Id of today's existing session when editing; null when logging a new one.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<DraftBook[]>([]);
   const [minutes, setMinutes] = useState<string>("");
   const [mood, setMood] = useState<SessionMood | undefined>(undefined);
   const [notes, setNotes] = useState("");
   const [quote, setQuote] = useState("");
   const [quotePage, setQuotePage] = useState<string>("");
   const [addingBook, setAddingBook] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Reset on every reopen so a previous draft doesn't linger.
+  // On open, prefill from today's session if one already exists (edit mode);
+  // otherwise start a fresh log seeded with the currently-reading books.
   useEffect(() => {
-    if (open) {
-      setDrafts(initialDrafts);
+    if (!open) return;
+    setStep(1);
+    setSaved(false);
+    setAddingBook(false);
+
+    const todaySession = state.sessions.find((s) => s.date === today) ?? null;
+    if (todaySession) {
+      setEditingId(todaySession.id);
+      setDrafts(
+        todaySession.bookProgresses.map((bp) => ({
+          bookId: bp.bookId,
+          newProgress: bp.newProgress,
+        })),
+      );
+      setMinutes(todaySession.minutes != null ? String(todaySession.minutes) : "");
+      setMood(todaySession.mood);
+      setNotes(todaySession.notes ?? "");
+      setQuote(todaySession.quote ?? "");
+      setQuotePage(
+        todaySession.quotePage != null ? String(todaySession.quotePage) : "",
+      );
+    } else {
+      setEditingId(null);
+      setDrafts(
+        state.books
+          .filter((b) => b.status === "reading")
+          .map((b) => ({ bookId: b.id, newProgress: b.progress ?? 0 })),
+      );
       setMinutes("");
       setMood(undefined);
       setNotes("");
       setQuote("");
       setQuotePage("");
-      setAddingBook(false);
-      setError(null);
     }
-  }, [open, initialDrafts]);
+    // Capture library state only at open time, not on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const draftIds = new Set(drafts.map((d) => d.bookId));
   const availableToAdd = state.books.filter((b) => !draftIds.has(b.id));
@@ -87,20 +108,16 @@ export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) 
   function addBook(bookId: string) {
     const book = state.books.find((b) => b.id === bookId);
     if (!book) return;
-    setDrafts((prev) => [
-      ...prev,
-      { bookId, newProgress: book.progress ?? 0 },
-    ]);
+    setDrafts((prev) => [...prev, { bookId, newProgress: book.progress ?? 0 }]);
     setAddingBook(false);
   }
 
   function handleSave() {
-    if (drafts.length === 0) {
-      setError("Pick at least one book to log.");
-      return;
-    }
+    if (drafts.length === 0) return;
     const parsedMinutes = minutes.trim() ? parseInt(minutes, 10) : NaN;
     const parsedQuotePage = quotePage.trim() ? parseInt(quotePage, 10) : NaN;
+    // One session per day: editing replaces today's existing session.
+    if (editingId) deleteSession(editingId);
     addSession({
       date: today,
       bookProgresses: drafts,
@@ -112,198 +129,383 @@ export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) 
       quotePage:
         !isNaN(parsedQuotePage) && parsedQuotePage > 0 ? parsedQuotePage : undefined,
     });
-    onOpenChange(false);
+    setSaved(true);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Log today's reading</DialogTitle>
-        </DialogHeader>
+        {saved ? (
+          <SuccessScreen
+            count={drafts.length}
+            editing={editingId !== null}
+            onDone={() => onOpenChange(false)}
+          />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {step === 1
+                  ? "What books have you read?"
+                  : "How long did you read and how did it feel?"}
+              </DialogTitle>
+            </DialogHeader>
 
-        <div className="flex flex-col gap-5">
-          {/* Books + progress sliders */}
-          <section className="space-y-2">
-            <Label>Books</Label>
-            {drafts.length === 0 && (
-              <p className="rounded-xl bg-muted/60 border border-border px-3 py-2 text-sm text-muted-foreground">
-                No books selected — add one below.
-              </p>
-            )}
-            <ul className="space-y-2">
-              {drafts.map((d) => {
-                const book = state.books.find((b) => b.id === d.bookId);
-                if (!book) return null;
-                return (
-                  <li
-                    key={d.bookId}
-                    className="rounded-xl bg-card border border-border p-3 space-y-2"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-[54px] shrink-0">
-                        <CoverImage
-                          title={book.title}
-                          src={book.coverUrl}
-                          rounded="rounded-md"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium leading-tight line-clamp-1">
-                          {book.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {book.author}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeBook(d.bookId)}
-                        aria-label="Remove"
-                        className="text-muted-foreground hover:text-destructive p-1 rounded"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <ProgressRow
-                      book={book}
-                      value={d.newProgress}
-                      onChange={(v) => updateProgress(d.bookId, v)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
+            <StepIndicator step={step} />
 
-            {addingBook && availableToAdd.length > 0 ? (
-              <div className="rounded-xl border border-border bg-card max-h-44 overflow-y-auto divide-y divide-border/60">
-                {availableToAdd.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => addBook(b.id)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent/40 transition-colors"
-                  >
-                    <div className="w-8 h-12 shrink-0">
-                      <CoverImage
-                        title={b.title}
-                        src={b.coverUrl}
-                        rounded="rounded-sm"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">
-                        {b.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {b.author}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : availableToAdd.length > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAddingBook(true)}
-                className="self-start"
-              >
-                <Plus className="h-4 w-4" />
-                Add another book
-              </Button>
-            ) : null}
-          </section>
-
-          {/* Reading time */}
-          <section className="space-y-1.5">
-            <Label htmlFor="minutes">How long did you read? (mins)</Label>
-            <Input
-              id="minutes"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={1440}
-              placeholder="e.g. 45"
-              value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-            />
-          </section>
-
-          {/* Mood */}
-          <section className="space-y-1.5">
-            <Label>How did it feel?</Label>
-            <div className="flex flex-wrap gap-2">
-              {MOODS.map((m) => {
-                const selected = mood === m.value;
-                return (
-                  <button
-                    key={m.value}
-                    type="button"
-                    onClick={() => setMood(selected ? undefined : m.value)}
-                    aria-pressed={selected}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                      selected
-                        ? "bg-primary/10 border-primary/40 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:bg-accent/40",
-                    )}
-                  >
-                    <span aria-hidden="true">{m.emoji}</span>
-                    {m.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Notes */}
-          <section className="space-y-1.5">
-            <Label htmlFor="session-notes">Notes</Label>
-            <Textarea
-              id="session-notes"
-              rows={3}
-              placeholder="What stuck with you?"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </section>
-
-          {/* Quote */}
-          <section className="space-y-1.5">
-            <Label htmlFor="session-quote">Quote (optional)</Label>
-            <Textarea
-              id="session-quote"
-              rows={2}
-              placeholder="A line you want to remember"
-              value={quote}
-              onChange={(e) => setQuote(e.target.value)}
-            />
-            {quote.trim() && (
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                placeholder="Page (optional)"
-                value={quotePage}
-                onChange={(e) => setQuotePage(e.target.value)}
-                className="w-32"
+            {step === 1 ? (
+              <StepBooks
+                state={state}
+                drafts={drafts}
+                availableToAdd={availableToAdd}
+                addingBook={addingBook}
+                setAddingBook={setAddingBook}
+                onUpdateProgress={updateProgress}
+                onRemoveBook={removeBook}
+                onAddBook={addBook}
+              />
+            ) : (
+              <StepDetails
+                minutes={minutes}
+                setMinutes={setMinutes}
+                mood={mood}
+                setMood={setMood}
+                notes={notes}
+                setNotes={setNotes}
+                quote={quote}
+                setQuote={setQuote}
+                quotePage={quotePage}
+                setQuotePage={setQuotePage}
               />
             )}
-          </section>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+            {/* Footer navigation — pinned to the bottom of the modal */}
+            <div className="mt-auto flex justify-between gap-2 pt-1">
+              {step === 1 ? (
+                <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => setStep(1)}>
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+              )}
 
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save session</Button>
-          </div>
-        </div>
+              {step === 1 ? (
+                <Button
+                  onClick={() => setStep(2)}
+                  disabled={drafts.length === 0}
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={handleSave}>
+                  {editingId ? "Update session" : "Save session"}
+                </Button>
+              )}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Step indicator ─────────────────────────────────────────────────────────
+
+function StepIndicator({ step }: { step: Step }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex flex-1 gap-1.5" aria-hidden="true">
+        {[1, 2].map((n) => (
+          <span
+            key={n}
+            className={cn(
+              "h-1.5 flex-1 rounded-full transition-colors",
+              step >= n ? "bg-primary" : "bg-border",
+            )}
+          />
+        ))}
+      </div>
+      <span className="text-xs font-medium text-muted-foreground tabular-nums">
+        Step {step} of 2
+      </span>
+    </div>
+  );
+}
+
+// ── Step 1: books ──────────────────────────────────────────────────────────
+
+function StepBooks({
+  state,
+  drafts,
+  availableToAdd,
+  addingBook,
+  setAddingBook,
+  onUpdateProgress,
+  onRemoveBook,
+  onAddBook,
+}: {
+  state: ReturnType<typeof useLibrary>["state"];
+  drafts: DraftBook[];
+  availableToAdd: Book[];
+  addingBook: boolean;
+  setAddingBook: (v: boolean) => void;
+  onUpdateProgress: (bookId: string, p: number) => void;
+  onRemoveBook: (bookId: string) => void;
+  onAddBook: (bookId: string) => void;
+}) {
+  return (
+    <section className="space-y-2">
+      <Label>Books read in this session</Label>
+      {drafts.length === 0 && (
+        <p className="rounded-xl bg-muted/60 border border-border px-3 py-2 text-sm text-muted-foreground">
+          No books selected — add one below.
+        </p>
+      )}
+      <ul className="space-y-2">
+        {drafts.map((d) => {
+          const book = state.books.find((b) => b.id === d.bookId);
+          if (!book) return null;
+          return (
+            <li
+              key={d.bookId}
+              className="rounded-xl bg-card border border-border p-3 space-y-2"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-[54px] shrink-0">
+                  <CoverImage
+                    title={book.title}
+                    src={book.coverUrl}
+                    rounded="rounded-md"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight line-clamp-1">
+                    {book.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">
+                    {book.author}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemoveBook(d.bookId)}
+                  aria-label="Remove"
+                  className="text-muted-foreground hover:text-destructive p-1 rounded"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <ProgressRow
+                book={book}
+                value={d.newProgress}
+                onChange={(v) => onUpdateProgress(d.bookId, v)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+
+      {addingBook && availableToAdd.length > 0 ? (
+        <div className="rounded-xl border border-border bg-card max-h-44 overflow-y-auto divide-y divide-border/60">
+          {availableToAdd.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onAddBook(b.id)}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-accent/40 transition-colors"
+            >
+              <div className="w-8 h-12 shrink-0">
+                <CoverImage title={b.title} src={b.coverUrl} rounded="rounded-sm" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium leading-tight truncate">
+                  {b.title}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {b.author}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : availableToAdd.length > 0 ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setAddingBook(true)}
+          className="self-start"
+        >
+          <Plus className="h-4 w-4" />
+          Add another book
+        </Button>
+      ) : null}
+    </section>
+  );
+}
+
+// ── Step 2: time, mood, notes, quote ───────────────────────────────────────
+
+function StepDetails({
+  minutes,
+  setMinutes,
+  mood,
+  setMood,
+  notes,
+  setNotes,
+  quote,
+  setQuote,
+  quotePage,
+  setQuotePage,
+}: {
+  minutes: string;
+  setMinutes: (v: string) => void;
+  mood: SessionMood | undefined;
+  setMood: (v: SessionMood | undefined) => void;
+  notes: string;
+  setNotes: (v: string) => void;
+  quote: string;
+  setQuote: (v: string) => void;
+  quotePage: string;
+  setQuotePage: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Reading time */}
+      <section className="space-y-1.5">
+        <Label htmlFor="minutes">How long did you read? (mins)</Label>
+        <Input
+          id="minutes"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={1440}
+          placeholder="e.g. 45"
+          value={minutes}
+          onChange={(e) => setMinutes(e.target.value)}
+        />
+      </section>
+
+      {/* Mood */}
+      <section className="space-y-1.5">
+        <Label>How did it feel?</Label>
+        <div className="flex flex-wrap gap-2">
+          {MOODS.map((m) => {
+            const selected = mood === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => setMood(selected ? undefined : m.value)}
+                aria-pressed={selected}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  selected
+                    ? "bg-primary/10 border-primary/40 text-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent/40",
+                )}
+              >
+                <span aria-hidden="true">{m.emoji}</span>
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Notes (optional) */}
+      <section className="space-y-1.5">
+        <Label htmlFor="session-notes">Notes (optional)</Label>
+        <Textarea
+          id="session-notes"
+          rows={3}
+          placeholder="What stuck with you?"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </section>
+
+      {/* Quote (optional) */}
+      <section className="space-y-1.5">
+        <Label htmlFor="session-quote">Quote (optional)</Label>
+        <Textarea
+          id="session-quote"
+          rows={2}
+          placeholder="A line you want to remember"
+          value={quote}
+          onChange={(e) => setQuote(e.target.value)}
+        />
+        {quote.trim() && (
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            placeholder="Page (optional)"
+            value={quotePage}
+            onChange={(e) => setQuotePage(e.target.value)}
+            className="w-32"
+          />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ── Success screen ─────────────────────────────────────────────────────────
+
+function SuccessScreen({
+  count,
+  editing,
+  onDone,
+}: {
+  count: number;
+  editing: boolean;
+  onDone: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center text-center gap-4 py-10">
+      {/* Visually-hidden title keeps the dialog accessible. */}
+      <DialogTitle className="sr-only">Session saved</DialogTitle>
+
+      <div className="relative flex items-center justify-center">
+        {/* Pulsing celebratory ring */}
+        <span className="absolute h-20 w-20 rounded-full bg-primary/30 animate-success-ring" />
+        {/* Check badge */}
+        <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-indigo-500 text-primary-foreground shadow-lg animate-pop-in">
+          <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none" aria-hidden="true">
+            <path
+              d="M5 12.5 L10 17.5 L19 7"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              pathLength={1}
+              style={{ strokeDasharray: 1 }}
+              className="animate-check-draw"
+            />
+          </svg>
+        </span>
+      </div>
+
+      <div className="space-y-1 animate-rise-in">
+        <p className="text-lg font-semibold">
+          {editing ? "Session updated!" : "Session logged!"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {count === 1
+            ? "Progress saved for 1 book. Keep the streak going."
+            : `Progress saved for ${count} books. Keep the streak going.`}
+        </p>
+      </div>
+
+      <Button onClick={onDone} className="mt-2 animate-rise-in">
+        Done
+      </Button>
+    </div>
   );
 }
 
@@ -316,17 +518,59 @@ function ProgressRow({
   value: number;
   onChange: (v: number) => void;
 }) {
-  const pagesRead =
-    book.pages !== undefined ? Math.round((value / 100) * book.pages) : null;
+  const hasPages = typeof book.pages === "number" && book.pages > 0;
+  const totalPages = book.pages ?? 0;
+  // Local string state lets the user type freely (incl. clearing) without the
+  // value fighting their keystrokes.
+  const [pageInput, setPageInput] = useState(
+    hasPages ? String(Math.round((value / 100) * totalPages)) : "",
+  );
+
+  // Keep the page field in sync when the slider moves the value.
+  useEffect(() => {
+    if (hasPages) setPageInput(String(Math.round((value / 100) * totalPages)));
+  }, [value, hasPages, totalPages]);
+
+  function handlePageChange(raw: string) {
+    setPageInput(raw);
+    if (!hasPages) return;
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) return;
+    const clamped = Math.max(0, Math.min(totalPages, n));
+    // Store a precise (2-decimal) percentage so each page round-trips exactly,
+    // even on long books where one slider step spans several pages.
+    onChange(Math.round((clamped / totalPages) * 10000) / 100);
+  }
+
+  function handlePageBlur() {
+    if (hasPages && pageInput.trim() === "") {
+      setPageInput(String(Math.round((value / 100) * totalPages)));
+    }
+  }
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>Progress</span>
-        <span className="tabular-nums">
-          {pagesRead !== null && book.pages
-            ? `${pagesRead} / ${book.pages} pages`
-            : `${value}%`}
-        </span>
+        {hasPages ? (
+          <label className="flex items-center gap-1.5">
+            <span>Page</span>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={totalPages}
+              value={pageInput}
+              onChange={(e) => handlePageChange(e.target.value)}
+              onBlur={handlePageBlur}
+              aria-label={`Current page for ${book.title}`}
+              className="h-7 w-16 px-1.5 text-center tabular-nums"
+            />
+            <span className="tabular-nums">of {totalPages}</span>
+          </label>
+        ) : (
+          <span className="tabular-nums">{Math.round(value)}%</span>
+        )}
       </div>
       <Slider
         value={[value]}

@@ -265,7 +265,7 @@ export function BookForm({
     return (
       <Suspense
         fallback={
-          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Loading scanner…</p>
           </div>
@@ -280,7 +280,7 @@ export function BookForm({
   }
   if (scannerView === "looking-up") {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           Looking up book details…
@@ -290,7 +290,9 @@ export function BookForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-1 min-h-0 flex-col">
+      {/* Scrollable body — fields live here, footer stays pinned below. */}
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 px-6 py-5">
       {/* Scan barcode CTA — quick way to skip typing entirely.
         Hidden when editing an existing book to keep the action clear. */}
       {!initial && (
@@ -430,7 +432,7 @@ export function BookForm({
             <div className="flex items-center justify-between">
               <Label htmlFor="progress">Progress</Label>
               <span className="text-sm text-muted-foreground tabular-nums">
-                {progress}%
+                {Math.round(progress)}%
               </span>
             </div>
             <Slider
@@ -570,8 +572,10 @@ export function BookForm({
           )}
         </p>
       )}
+      </div>
 
-      <div className="flex items-center justify-between gap-2 pt-2">
+      {/* Pinned action bar — stays at the bottom with a subtle top divider. */}
+      <div className="flex items-center justify-between gap-2 border-t border-border px-6 py-4">
         <div>
           {onAddAnother && (
             <Button
