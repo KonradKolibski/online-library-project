@@ -14,6 +14,7 @@ import { WeeklyFeaturedBook } from "@/components/home/WeeklyFeaturedBook";
 import { WeeklyReadingGoalCard } from "@/components/home/WeeklyReadingGoalCard";
 import { FavouriteAuthorsCard } from "@/components/home/FavouriteAuthorsCard";
 import { StatsHighlights } from "@/components/home/StatsHighlights";
+import { pickWeeklyFeatured } from "@/lib/weeklyPick";
 
 interface HomePageProps {
   onNavigate: (view: MainView) => void;
@@ -34,9 +35,21 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const [selected, setSelected] = useState<Book | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [previewSessionId, setPreviewSessionId] = useState<string | null>(null);
   const selectedLive = selected
     ? state.books.find((b) => b.id === selected.id) ?? null
     : null;
+
+  function openSessions() {
+    setPreviewSessionId(null);
+    setSessionsOpen(true);
+  }
+  function previewDay(dateKey: string) {
+    const session = state.sessions.find((s) => s.date === dateKey);
+    if (!session) return;
+    setPreviewSessionId(session.id);
+    setSessionsOpen(true);
+  }
 
   /** Session-derived signals: the set of read-day keys + total minutes logged. */
   const { sessionDates, totalMinutes } = useMemo(() => {
@@ -56,7 +69,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
     favouriteAuthors,
     booksThisYear,
     pagesThisYear,
-    totalBooksRead,
   } = useMemo(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -69,15 +81,9 @@ export function HomePage({ onNavigate }: HomePageProps) {
       .filter((b) => b.status === "to-read")
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
-    // Featured book — random pick from to-read. Stable across re-renders within
-    // a session; rerolls only when the to-read set changes (add / remove / status flip).
-    const toReadIdsKey = toRead.map((b) => b.id).join("|");
-    const featured =
-      toRead.length > 0
-        ? toRead[Math.floor(Math.random() * toRead.length)]
-        : null;
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    toReadIdsKey;
+    // Featured book — a random pick from the to-read pile that stays fixed for
+    // the whole week (persisted), rather than rerolling on every refresh.
+    const featured = pickWeeklyFeatured(toRead);
 
     const finished = state.books.filter((b) => b.status === "finished");
     const finishedYr = finished.filter(
@@ -109,10 +115,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       favouriteAuthors: ranked,
       booksThisYear: finishedYr.length,
       pagesThisYear: pagesYr,
-      totalBooksRead: finished.length,
     };
-    // We intentionally include `state.books` only — Math.random is non-pure
-    // but we want a fresh featured pick whenever the book set changes.
   }, [state.books]);
 
   // ── Empty library — full onboarding hero ─────────────────────────────────
@@ -121,25 +124,31 @@ export function HomePage({ onNavigate }: HomePageProps) {
       <div className="flex flex-col gap-6">
         <WeekStrip
           sessionDates={sessionDates}
-          totalBooksRead={totalBooksRead}
-          totalMinutes={totalMinutes}
           onLogReading={() => setLogOpen(true)}
-          onBrowseSessions={() => setSessionsOpen(true)}
+          onBrowseSessions={openSessions}
+          onSelectDay={previewDay}
         />
         <WelcomeHero variant="empty" name={settings.name} onAddBook={openAddBook} />
         {/* Mockup sections still render — gives the user a preview of what's coming. */}
+        <StatsHighlights
+          booksThisYear={0}
+          pagesThisYear={0}
+          totalBooks={0}
+          totalMinutes={0}
+        />
         <DashboardGrid
           readingBooks={[]}
           featuredBook={null}
           goalBooks={[]}
           favouriteAuthors={[]}
-          booksThisYear={0}
-          pagesThisYear={0}
-          totalBooks={0}
           onSelect={setSelected}
         />
         <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
-        <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+        <ReadingSessionsDialog
+          open={sessionsOpen}
+          onOpenChange={setSessionsOpen}
+          initialSessionId={previewSessionId}
+        />
       </div>
     );
   }
@@ -149,20 +158,21 @@ export function HomePage({ onNavigate }: HomePageProps) {
     <div className="flex flex-col gap-6">
       <WeekStrip
         sessionDates={sessionDates}
-        totalBooksRead={totalBooksRead}
-        totalMinutes={totalMinutes}
         onLogReading={() => setLogOpen(true)}
-        onBrowseSessions={() => setSessionsOpen(true)}
+        onBrowseSessions={openSessions}
+        onSelectDay={previewDay}
       />
-      <WelcomeHero variant="returning" name={settings.name} />
+      <StatsHighlights
+        booksThisYear={booksThisYear}
+        pagesThisYear={pagesThisYear}
+        totalBooks={state.books.length}
+        totalMinutes={totalMinutes}
+      />
       <DashboardGrid
         readingBooks={readingBooks}
         featuredBook={featuredBook}
         goalBooks={toReadBooks.slice(0, GOAL_BOOK_PREVIEW_LIMIT)}
         favouriteAuthors={favouriteAuthors}
-        booksThisYear={booksThisYear}
-        pagesThisYear={pagesThisYear}
-        totalBooks={state.books.length}
         onSelect={setSelected}
       />
 
@@ -175,7 +185,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
       )}
 
       <LogReadingDialog open={logOpen} onOpenChange={setLogOpen} />
-      <ReadingSessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+      <ReadingSessionsDialog
+        open={sessionsOpen}
+        onOpenChange={setSessionsOpen}
+        initialSessionId={previewSessionId}
+      />
     </div>
   );
 }
@@ -185,9 +199,6 @@ interface DashboardGridProps {
   featuredBook: Book | null;
   goalBooks: Book[];
   favouriteAuthors: { name: string; count: number }[];
-  booksThisYear: number;
-  pagesThisYear: number;
-  totalBooks: number;
   onSelect: (b: Book) => void;
 }
 
@@ -199,7 +210,6 @@ interface DashboardGridProps {
  *
  *   Row 1: Currently reading (2 cols)   |  Featured pick (1 col)
  *   Row 2: Weekly reading goal (2 cols) |  Favourite authors (1 col)  ← aligned
- *   Row 3: KPI stats (2 cols)
  *
  * On small screens it collapses to a single column in source order.
  */
@@ -208,18 +218,15 @@ function DashboardGrid({
   featuredBook,
   goalBooks,
   favouriteAuthors,
-  booksThisYear,
-  pagesThisYear,
-  totalBooks,
   onSelect,
 }: DashboardGridProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-      {/* Row 1 */}
+      {/* Row 1 — featured pick stretches to match the currently-reading box height */}
       <div className="lg:col-span-2">
         <CurrentlyReadingRow books={readingBooks} onSelect={onSelect} />
       </div>
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-1 lg:self-stretch">
         <WeeklyFeaturedBook book={featuredBook} onSelect={onSelect} />
       </div>
 
@@ -229,15 +236,6 @@ function DashboardGrid({
       </div>
       <div className="lg:col-span-1">
         <FavouriteAuthorsCard authors={favouriteAuthors} />
-      </div>
-
-      {/* Row 3 */}
-      <div className="lg:col-span-2">
-        <StatsHighlights
-          booksThisYear={booksThisYear}
-          pagesThisYear={pagesThisYear}
-          totalBooks={totalBooks}
-        />
       </div>
     </div>
   );

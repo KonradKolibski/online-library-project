@@ -1,6 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { BookOpen, Check, Clock, Flame, History, Plus } from "lucide-react";
+import { useMemo } from "react";
+import { Check, Flame, History, Pencil, Plus } from "lucide-react";
 import {
   currentWeek,
   detectFirstDayOfWeek,
@@ -12,20 +11,18 @@ import { cn } from "@/lib/utils";
 interface WeekStripProps {
   /** All session date strings (YYYY-MM-DD) — membership = "read that day". */
   sessionDates: Set<string>;
-  /** Total books finished, all-time. */
-  totalBooksRead: number;
-  /** Total minutes logged across all sessions. */
-  totalMinutes: number;
   /** Triggered by the log-reading button. */
   onLogReading: () => void;
   /** Opens the browse-all-sessions modal. */
   onBrowseSessions: () => void;
+  /** Opens a read-only preview of the session logged on the given day. */
+  onSelectDay: (dateKey: string) => void;
 }
 
 /**
  * Top-of-Home reading week — two cards side by side:
  *  - a warm streak card (flame + consecutive-day count)
- *  - a week card with all-time stats, a 7-day pill strip, and a log button.
+ *  - a week card with a 7-day pill strip and a link to the full history.
  *
  * Day states: read (emerald check), missed (rose "!") — but only on days that
  * fall on/after the user's first ever session so brand-new users aren't
@@ -34,10 +31,9 @@ interface WeekStripProps {
  */
 export function WeekStrip({
   sessionDates,
-  totalBooksRead,
-  totalMinutes,
   onLogReading,
   onBrowseSessions,
+  onSelectDay,
 }: WeekStripProps) {
   const { days, todayKey, streak, firstKey } = useMemo(() => {
     const fdow = detectFirstDayOfWeek();
@@ -52,93 +48,108 @@ export function WeekStrip({
     };
   }, [sessionDates]);
 
+  const loggedToday = sessionDates.has(todayKey);
+
   return (
     <section className="flex flex-col sm:flex-row gap-3">
       <StreakCard streak={streak} />
 
       {/* Week card */}
       <div className="flex-1 rounded-2xl bg-card border border-border p-3 sm:p-4 flex flex-col gap-3">
-        {/* Header: title + all-time stats */}
+        {/* Header: title + link to the full sessions history */}
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">This week</p>
-          <div className="flex items-center gap-3">
-            <StatWithTooltip
-              icon={BookOpen}
-              value={String(totalBooksRead)}
-              tip="Books you've finished, all-time."
-            />
-            <StatWithTooltip
-              icon={Clock}
-              value={formatMinutes(totalMinutes)}
-              tip="Total time you've logged across all reading sessions."
-            />
-            <button
-              type="button"
-              onClick={onBrowseSessions}
-              aria-label="Browse all reading sessions"
-              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <History className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">All sessions</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onBrowseSessions}
+            aria-label="Check all reading sessions"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <History className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Check all sessions</span>
+          </button>
         </div>
 
-        {/* Day strip + big log button, same row */}
-        <div className="flex items-stretch gap-2 sm:gap-3">
-          <ul className="flex-1 flex items-end justify-between gap-1 sm:gap-1.5">
-            {days.map((d) => {
-              const key = localDateString(d);
-              const isToday = key === todayKey;
-              const isPast = key < todayKey;
-              const isFuture = key > todayKey;
-              const hasRead = sessionDates.has(key);
-              const isMissed =
-                isPast && !hasRead && firstKey != null && key >= firstKey;
-              return (
-                <li
-                  key={key}
-                  className="flex-1 min-w-0 flex flex-col items-center gap-1.5"
-                >
+        {/* Day strip */}
+        <ul className="flex items-end justify-between gap-1 sm:gap-1.5">
+          {days.map((d) => {
+            const key = localDateString(d);
+            const isToday = key === todayKey;
+            const isPast = key < todayKey;
+            const isFuture = key > todayKey;
+            const hasRead = sessionDates.has(key);
+            const isMissed =
+              isPast && !hasRead && firstKey != null && key >= firstKey;
+            return (
+              <li
+                key={key}
+                className="flex-1 min-w-0 flex flex-col items-center gap-1.5"
+              >
+                {hasRead ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectDay(key)}
+                    aria-label={`View reading session for ${shortWeekday(d)}`}
+                    className="rounded-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <DayTile
+                      isToday={isToday}
+                      isFuture={isFuture}
+                      hasRead={hasRead}
+                      isMissed={isMissed}
+                    />
+                  </button>
+                ) : (
                   <DayTile
                     isToday={isToday}
                     isFuture={isFuture}
                     hasRead={hasRead}
                     isMissed={isMissed}
                   />
-                  <span
-                    className={cn(
-                      "text-[10px] uppercase tracking-wide",
-                      isToday
-                        ? "text-foreground font-semibold"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {shortWeekday(d)}
-                  </span>
-                  <span
-                    className={cn(
-                      "h-0.5 w-4 rounded-full",
-                      isToday ? "bg-primary" : "bg-transparent",
-                    )}
-                    aria-hidden="true"
-                  />
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Big log-reading button, aligned to the day column height */}
-          <button
-            type="button"
-            onClick={onLogReading}
-            className="shrink-0 flex flex-col items-center justify-center gap-1 px-4 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="h-5 w-5" />
-            <span className="text-[11px] font-medium leading-none">Log</span>
-          </button>
-        </div>
+                )}
+                <span
+                  className={cn(
+                    "text-[10px] uppercase tracking-wide",
+                    isToday
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {shortWeekday(d)}
+                </span>
+                <span
+                  className={cn(
+                    "h-0.5 w-4 rounded-full",
+                    isToday ? "bg-primary" : "bg-transparent",
+                  )}
+                  aria-hidden="true"
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      {/* Log / edit session button — sits outside the week card and stretches to
+          its full height so the three top cards read as one row. Once today is
+          logged it switches to editing that session (one session per day). */}
+      <button
+        type="button"
+        onClick={onLogReading}
+        aria-label={loggedToday ? "Edit today's reading session" : "Log a reading session"}
+        className="group shrink-0 sm:w-32 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-indigo-500 px-5 py-3.5 text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/25">
+          {loggedToday ? (
+            <Pencil className="h-5 w-5" strokeWidth={2.5} />
+          ) : (
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+          )}
+        </span>
+        <span className="text-sm font-semibold leading-tight text-center">
+          {loggedToday ? "Edit today's session" : "Log session"}
+        </span>
+      </button>
     </section>
   );
 }
@@ -157,57 +168,6 @@ function StreakCard({ streak }: { streak: number }) {
         aria-hidden="true"
       />
     </div>
-  );
-}
-
-// ── Header stat with hover tooltip ────────────────────────────────────────────
-
-function StatWithTooltip({
-  icon: Icon,
-  value,
-  tip,
-}: {
-  icon: React.ElementType;
-  value: string;
-  tip: string;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-
-  function open() {
-    const r = ref.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 6, left: r.left + r.width / 2 });
-  }
-  function close() {
-    setPos(null);
-  }
-
-  return (
-    <>
-      <span
-        ref={ref}
-        onMouseEnter={open}
-        onMouseLeave={close}
-        onFocus={open}
-        onBlur={close}
-        tabIndex={0}
-        className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground cursor-help rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Icon className="h-3.5 w-3.5" />
-        <span className="tabular-nums text-foreground">{value}</span>
-      </span>
-      {pos &&
-        createPortal(
-          <div
-            role="tooltip"
-            style={{ top: pos.top, left: pos.left, transform: "translateX(-50%)" }}
-            className="fixed z-[60] max-w-[14rem] rounded-lg bg-foreground text-background text-xs leading-relaxed px-3 py-2 shadow-lg pointer-events-none text-center"
-          >
-            {tip}
-          </div>,
-          document.body,
-        )}
-    </>
   );
 }
 
@@ -262,15 +222,6 @@ function DayTile({
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatMinutes(total: number): string {
-  if (total <= 0) return "0m";
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
 
 /**
  * Count consecutive read-days ending at today (or yesterday if today isn't

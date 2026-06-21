@@ -66,10 +66,31 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "pop-in": {
+          "0%": { transform: "scale(0)", opacity: "0" },
+          "60%": { transform: "scale(1.12)", opacity: "1" },
+          "100%": { transform: "scale(1)" },
+        },
+        "check-draw": {
+          "0%": { strokeDashoffset: "1" },
+          "100%": { strokeDashoffset: "0" },
+        },
+        "success-ring": {
+          "0%": { transform: "scale(0.6)", opacity: "0.45" },
+          "100%": { transform: "scale(2)", opacity: "0" },
+        },
+        "rise-in": {
+          "0%": { transform: "translateY(8px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pop-in": "pop-in 0.45s cubic-bezier(0.22,1,0.36,1) both",
+        "check-draw": "check-draw 0.4s 0.25s ease-out both",
+        "success-ring": "success-ring 0.9s 0.1s ease-out both",
+        "rise-in": "rise-in 0.4s 0.25s ease-out both",
       },
     },
   },

@@ -14,13 +14,13 @@ interface WeeklyFeaturedBookProps {
  */
 export function WeeklyFeaturedBook({ book, onSelect }: WeeklyFeaturedBookProps) {
   return (
-    <section className="space-y-3">
+    <section className="flex h-full flex-col gap-3">
       <SectionHeader title="This week's pick" />
       {book ? (
         <button
           type="button"
           onClick={() => onSelect(book)}
-          className="group w-full rounded-2xl bg-gradient-to-br from-pink-100/60 via-rose-50 to-amber-100/40 p-4 flex flex-col items-center text-center gap-3 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="group w-full flex-1 rounded-2xl bg-gradient-to-br from-pink-100/60 via-rose-50 to-amber-100/40 p-4 flex flex-col items-center justify-center text-center gap-3 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div className="w-32 drop-shadow-md">
             <CoverImage title={book.title} src={book.coverUrl} rounded="rounded-xl" />
@@ -39,7 +39,7 @@ export function WeeklyFeaturedBook({ book, onSelect }: WeeklyFeaturedBookProps) 
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-8 flex flex-col items-center text-center gap-2">
+    <div className="h-full flex-1 rounded-2xl border border-dashed border-border bg-card/40 px-4 py-8 flex flex-col items-center justify-center text-center gap-2">
       <div className="rounded-xl bg-muted/60 p-2.5 text-muted-foreground">
         <Sparkles className="h-5 w-5" />
       </div>

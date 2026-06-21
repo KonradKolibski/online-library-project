@@ -26,16 +26,18 @@ export function CurrentlyReadingRow({
       {books.length === 0 ? (
         <EmptyState />
       ) : (
-        <HorizontalScroller className="pb-1 -mx-1 px-1">
-          {books.map((b) => (
-            <BookMiniCard
-              key={b.id}
-              book={b}
-              onClick={() => onSelect(b)}
-              showProgress
-            />
-          ))}
-        </HorizontalScroller>
+        <div className="rounded-2xl bg-card border border-border p-4">
+          <HorizontalScroller className="pb-1 -mx-1 px-1">
+            {books.map((b) => (
+              <BookMiniCard
+                key={b.id}
+                book={b}
+                onClick={() => onSelect(b)}
+                showProgress
+              />
+            ))}
+          </HorizontalScroller>
+        </div>
       )}
     </section>
   );

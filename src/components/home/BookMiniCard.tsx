@@ -53,7 +53,7 @@ export function BookMiniCard({ book, onClick, showProgress }: BookMiniCardProps)
           <p className="text-[10px] text-muted-foreground tabular-nums">
             {pagesRead !== null && book.pages
               ? `${pagesRead} / ${book.pages}`
-              : `${progress}%`}
+              : `${Math.round(progress)}%`}
           </p>
         </div>
       )}

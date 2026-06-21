@@ -109,6 +109,12 @@
   #root {
     @apply h-full;
   }
+  /* Always reserve the scrollbar gutter so the page width stays constant when
+     switching between sections that scroll (e.g. Library) and ones that fit the
+     viewport (e.g. Discover) — otherwise the centred header flickers. */
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply text-foreground antialiased;
     background:

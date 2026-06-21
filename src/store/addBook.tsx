@@ -43,8 +43,8 @@ export function AddBookProvider({ children }: { children: ReactNode }) {
     <AddBookContext.Provider value={{ openAddBook }}>
       {children}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="gap-0 p-0">
+          <DialogHeader className="px-6 pt-6 pb-4">
             <DialogTitle>Add a book</DialogTitle>
           </DialogHeader>
           <BookForm

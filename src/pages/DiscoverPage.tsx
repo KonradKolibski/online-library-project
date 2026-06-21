@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, Send, Check, Plus, Loader2, BookOpen } from "lucide-react";
+import { Sparkles, Send, Check, Plus, Loader2 } from "lucide-react";
 import { useLibrary } from "@/store/library";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,8 +117,28 @@ export function DiscoverPage() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-1">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-5 py-12 text-center">
-            <div className="rounded-2xl bg-primary/10 p-5 text-primary">
-              <BookOpen className="h-10 w-10" />
+            <div className="relative flex items-center justify-center p-10">
+              {/* Soft pastel blobs behind the capybara */}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+                <div
+                  className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl opacity-80"
+                  style={{ background: "radial-gradient(circle, #A78BFA 0%, transparent 70%)" }}
+                />
+                <div
+                  className="absolute left-[22%] top-[28%] h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl opacity-70"
+                  style={{ background: "radial-gradient(circle, #F9A8D4 0%, transparent 70%)" }}
+                />
+                <div
+                  className="absolute left-[78%] top-[72%] h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl opacity-70"
+                  style={{ background: "radial-gradient(circle, #FDBA74 0%, transparent 70%)" }}
+                />
+              </div>
+              <img
+                src="/illustrations/capy-bookcase.svg"
+                alt=""
+                aria-hidden="true"
+                className="relative w-44 sm:w-52"
+              />
             </div>
             <p className="text-sm text-muted-foreground max-w-xs">
               Tell me what you feel like reading and I&apos;ll suggest books that fit your taste —

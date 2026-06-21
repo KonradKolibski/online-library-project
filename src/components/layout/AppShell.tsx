@@ -73,8 +73,13 @@ export function AppShell({
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-30 backdrop-blur-md bg-background/70 border-b border-border/60">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Logo — returns to Home */}
+          <button
+            type="button"
+            onClick={() => handleNavigate("home")}
+            aria-label="Go to home"
+            className="flex items-center gap-2 shrink-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <img
               src="/logo.svg"
               alt=""
@@ -84,7 +89,7 @@ export function AppShell({
             <span className="font-display font-semibold text-lg tracking-tight hidden sm:block">
               capy.books
             </span>
-          </div>
+          </button>
 
           {/* Nav tabs — desktop only (mobile uses BottomNav) */}
           <nav className="hidden md:flex items-center gap-1">

@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, Library } from "lucide-react";
+import { BookOpen, Calendar, Clock, Library } from "lucide-react";
 
 interface StatsHighlightsProps {
   /** Books finished this calendar year. */
@@ -7,30 +7,33 @@ interface StatsHighlightsProps {
   pagesThisYear: number;
   /** Total books in the library, regardless of status. */
   totalBooks: number;
+  /** Total minutes logged across all reading sessions, all-time. */
+  totalMinutes: number;
 }
 
 interface Tile {
   icon: React.ElementType;
   label: string;
   value: string;
-  tone: "primary" | "amber" | "emerald";
+  tone: "primary" | "amber" | "emerald" | "rose";
 }
 
 const TONE_CLASS: Record<Tile["tone"], string> = {
   primary: "bg-primary/10 text-primary",
   amber: "bg-amber-500/10 text-amber-600",
   emerald: "bg-emerald-500/10 text-emerald-600",
+  rose: "bg-rose-500/10 text-rose-600",
 };
 
 /**
- * Three fixed KPI tiles along the bottom of the dashboard. Always rendered;
- * unset values show as `0` rather than hiding the tile so the row's rhythm
- * stays consistent.
+ * Four fixed KPI tiles. Always rendered; unset values show as `0` rather than
+ * hiding the tile so the row's rhythm stays consistent.
  */
 export function StatsHighlights({
   booksThisYear,
   pagesThisYear,
   totalBooks,
+  totalMinutes,
 }: StatsHighlightsProps) {
   const tiles: Tile[] = [
     {
@@ -46,6 +49,12 @@ export function StatsHighlights({
       tone: "amber",
     },
     {
+      icon: Clock,
+      label: "Time read",
+      value: formatMinutes(totalMinutes),
+      tone: "rose",
+    },
+    {
       icon: Library,
       label: "Books in library",
       value: String(totalBooks),
@@ -54,7 +63,7 @@ export function StatsHighlights({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
       {tiles.map(({ icon: Icon, label, value, tone }) => (
         <div
           key={label}
@@ -75,4 +84,13 @@ export function StatsHighlights({
       ))}
     </div>
   );
+}
+
+function formatMinutes(total: number): string {
+  if (total <= 0) return "0m";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
