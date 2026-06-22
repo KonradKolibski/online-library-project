@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Plus, Sparkles, Trash2 } from "lucide-react";
 import type { Book, SessionMood } from "@/types/book";
 import { useLibrary } from "@/store/library";
+import { useProgression } from "@/lib/xp";
+import { ACHIEVEMENTS, type AchievementDef } from "@/lib/achievements";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +41,13 @@ const MOODS: { value: SessionMood; emoji: string; label: string }[] = [
 
 export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) {
   const { state, addSession, deleteSession } = useLibrary();
+  const progression = useProgression();
   const today = useMemo(() => localDateString(new Date()), []);
+
+  // Snapshot of XP + unlocked achievements captured the instant we save, so the
+  // success screen can show what this session earned (progression is derived, so
+  // after the dispatch `progression` already reflects the new totals).
+  const beforeRef = useRef<{ totalXp: number; earned: Set<string> } | null>(null);
 
   const [step, setStep] = useState<Step>(1);
   const [saved, setSaved] = useState(false);
@@ -116,6 +124,10 @@ export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) 
     if (drafts.length === 0) return;
     const parsedMinutes = minutes.trim() ? parseInt(minutes, 10) : NaN;
     const parsedQuotePage = quotePage.trim() ? parseInt(quotePage, 10) : NaN;
+    beforeRef.current = {
+      totalXp: progression.totalXp,
+      earned: new Set(progression.earnedAchievements),
+    };
     // One session per day: editing replaces today's existing session.
     if (editingId) deleteSession(editingId);
     addSession({
@@ -132,6 +144,15 @@ export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) 
     setSaved(true);
   }
 
+  const before = beforeRef.current;
+  const xpGained = saved && before ? Math.max(0, progression.totalXp - before.totalXp) : 0;
+  const newAchievements =
+    saved && before
+      ? ACHIEVEMENTS.filter(
+          (a) => progression.earnedAchievements.has(a.id) && !before.earned.has(a.id),
+        )
+      : [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -139,6 +160,8 @@ export function LogReadingDialog({ open, onOpenChange }: LogReadingDialogProps) 
           <SuccessScreen
             count={drafts.length}
             editing={editingId !== null}
+            xpGained={xpGained}
+            newAchievements={newAchievements}
             onDone={() => onOpenChange(false)}
           />
         ) : (
@@ -460,10 +483,14 @@ function StepDetails({
 function SuccessScreen({
   count,
   editing,
+  xpGained,
+  newAchievements,
   onDone,
 }: {
   count: number;
   editing: boolean;
+  xpGained: number;
+  newAchievements: AchievementDef[];
   onDone: () => void;
 }) {
   return (
@@ -501,6 +528,40 @@ function SuccessScreen({
             : `Progress saved for ${count} books. Keep the streak going.`}
         </p>
       </div>
+
+      {xpGained > 0 && (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3.5 py-1.5 text-sm font-semibold text-primary animate-rise-in">
+          <Sparkles className="h-4 w-4" />
+          +{xpGained.toLocaleString()} XP
+        </span>
+      )}
+
+      {newAchievements.length > 0 && (
+        <div className="w-full space-y-2 animate-rise-in">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Achievement{newAchievements.length > 1 ? "s" : ""} unlocked
+          </p>
+          {newAchievements.map((a) => {
+            const Icon = a.icon;
+            return (
+              <div
+                key={a.id}
+                className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-2.5 text-left"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{a.title}</p>
+                  <p className="text-[11px] text-primary font-medium tabular-nums">
+                    +{a.xpReward} XP · +{a.coinReward} coins
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Button onClick={onDone} className="mt-2 animate-rise-in">
         Done

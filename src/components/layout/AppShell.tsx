@@ -5,12 +5,15 @@ import {
   Home,
   Library,
   Compass,
-  BarChart2,
+  Trophy,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "./BottomNav";
+import { CoinBalance } from "@/components/progress/CoinBalance";
+import { ShopDialog } from "@/components/progress/ShopDialog";
 import { useAddBook } from "@/store/addBook";
+import { useProgression } from "@/lib/xp";
 import { cn } from "@/lib/utils";
 import type { MainView, AppView } from "@/App";
 
@@ -43,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Home", icon: Home, comingSoon: true },
   { id: "library", label: "My Library", icon: Library },
   { id: "discover", label: "Discover", icon: Compass, comingSoon: true },
-  { id: "stats", label: "Stats", icon: BarChart2, comingSoon: true },
+  { id: "stats", label: "Progress", icon: Trophy, comingSoon: true },
 ];
 
 interface AppShellProps {
@@ -62,7 +65,9 @@ export function AppShell({
   onOpenDocs,
 }: AppShellProps) {
   const [seen, setSeen] = useState<Set<string>>(loadSeen);
+  const [shopOpen, setShopOpen] = useState(false);
   const { openAddBook } = useAddBook();
+  const { coinBalance } = useProgression();
 
   function handleNavigate(id: MainView) {
     setSeen((prev) => markSeen(id, prev));
@@ -122,6 +127,11 @@ export function AppShell({
 
           {/* Actions */}
           <div className="flex items-center gap-1 shrink-0">
+            <CoinBalance
+              coins={coinBalance}
+              onClick={() => setShopOpen(true)}
+              className="mr-1"
+            />
             {onOpenDocs && (
               <Button
                 variant="ghost"
@@ -170,6 +180,8 @@ export function AppShell({
           <Plus className="h-6 w-6" />
         </button>
       )}
+
+      <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
     </div>
   );
 }

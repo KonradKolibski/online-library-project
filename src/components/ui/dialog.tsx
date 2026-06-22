@@ -23,10 +23,25 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+/** Desktop (sm+) fixed heights. Mobile is always a full-screen sheet.
+ *  - `xl`: the original full-size modal (90vh).
+ *  - `s`:  half-height (45vh) for short content like the shop. */
+export type DialogSize = "xl" | "s";
+
+const DIALOG_SIZE_CLASS: Record<DialogSize, string> = {
+  xl: "sm:h-[90vh]",
+  s: "sm:h-[45vh]",
+};
+
+interface DialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  size?: DialogSize;
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, size = "xl", ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -37,9 +52,10 @@ const DialogContent = React.forwardRef<
         // across the fixed height.
         "fixed inset-0 z-50 flex flex-col w-full gap-4 bg-card p-6 shadow-xl overflow-y-auto duration-200",
         // Desktop (sm+): centred dialog with rounded corners and a *fixed*
-        // viewport-relative height (90vh) so the modal stays the same size and
-        // never resizes/flickers to its content (e.g. when filtering a list).
-        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:h-[90vh] sm:border sm:rounded-2xl",
+        // viewport-relative height (per size) so the modal stays the same size
+        // and never resizes/flickers to its content (e.g. when filtering a list).
+        "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:border sm:rounded-2xl",
+        DIALOG_SIZE_CLASS[size],
         // Open/close animations — fade-only on mobile (zoom looks odd on a
         // full-screen surface), zoom + fade on desktop.
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
