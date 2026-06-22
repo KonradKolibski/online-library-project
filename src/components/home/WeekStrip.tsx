@@ -1,11 +1,13 @@
 import { useMemo } from "react";
-import { Check, Flame, History, Pencil, Plus } from "lucide-react";
+import { Check, Flame, History, Pencil, Plus, Snowflake } from "lucide-react";
 import {
   currentWeek,
   detectFirstDayOfWeek,
   localDateString,
   shortWeekday,
 } from "@/lib/dates";
+import { calculateStreak } from "@/lib/streak";
+import { useSettings } from "@/store/settings";
 import { cn } from "@/lib/utils";
 
 interface WeekStripProps {
@@ -35,6 +37,13 @@ export function WeekStrip({
   onBrowseSessions,
   onSelectDay,
 }: WeekStripProps) {
+  const { settings, applyFreeze } = useSettings();
+  const freezeInventory = settings.progression?.freezeInventory ?? 0;
+  const frozenDates = useMemo(
+    () => new Set(settings.progression?.frozenDates ?? []),
+    [settings.progression?.frozenDates],
+  );
+
   const { days, todayKey, streak, firstKey } = useMemo(() => {
     const fdow = detectFirstDayOfWeek();
     const now = new Date();
@@ -43,10 +52,10 @@ export function WeekStrip({
     return {
       days: week,
       todayKey: localDateString(now),
-      streak: calculateStreak(sessionDates, now),
+      streak: calculateStreak(sessionDates, now, frozenDates),
       firstKey: sorted[0] ?? null,
     };
-  }, [sessionDates]);
+  }, [sessionDates, frozenDates]);
 
   const loggedToday = sessionDates.has(todayKey);
 
@@ -78,8 +87,19 @@ export function WeekStrip({
             const isPast = key < todayKey;
             const isFuture = key > todayKey;
             const hasRead = sessionDates.has(key);
+            const isFrozen = frozenDates.has(key);
             const isMissed =
-              isPast && !hasRead && firstKey != null && key >= firstKey;
+              isPast && !hasRead && !isFrozen && firstKey != null && key >= firstKey;
+            const canFreeze = isMissed && freezeInventory > 0;
+            const tile = (
+              <DayTile
+                isToday={isToday}
+                isFuture={isFuture}
+                hasRead={hasRead}
+                isMissed={isMissed}
+                isFrozen={isFrozen}
+              />
+            );
             return (
               <li
                 key={key}
@@ -92,20 +112,20 @@ export function WeekStrip({
                     aria-label={`View reading session for ${shortWeekday(d)}`}
                     className="rounded-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <DayTile
-                      isToday={isToday}
-                      isFuture={isFuture}
-                      hasRead={hasRead}
-                      isMissed={isMissed}
-                    />
+                    {tile}
+                  </button>
+                ) : canFreeze ? (
+                  <button
+                    type="button"
+                    onClick={() => applyFreeze(key)}
+                    aria-label={`Use a streak freeze on ${shortWeekday(d)}`}
+                    title="Use a streak freeze to protect this day"
+                    className="rounded-xl transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {tile}
                   </button>
                 ) : (
-                  <DayTile
-                    isToday={isToday}
-                    isFuture={isFuture}
-                    hasRead={hasRead}
-                    isMissed={isMissed}
-                  />
+                  tile
                 )}
                 <span
                   className={cn(
@@ -178,11 +198,13 @@ function DayTile({
   isFuture,
   hasRead,
   isMissed,
+  isFrozen,
 }: {
   isToday: boolean;
   isFuture: boolean;
   hasRead: boolean;
   isMissed: boolean;
+  isFrozen: boolean;
 }) {
   const base =
     "h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center";
@@ -206,6 +228,15 @@ function DayTile({
     );
   }
 
+  // Protected by a streak freeze — frosty snowflake
+  if (isFrozen) {
+    return (
+      <div className={cn(base, "bg-sky-100 text-sky-500")}>
+        <Snowflake className="h-4 w-4" strokeWidth={2.5} />
+      </div>
+    );
+  }
+
   // Past + missed (after first session) — rose "!"
   if (isMissed) {
     return (
@@ -219,24 +250,4 @@ function DayTile({
   return (
     <div className={cn(base, isFuture ? "bg-foreground/[0.04]" : "bg-foreground/5")} />
   );
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Count consecutive read-days ending at today (or yesterday if today isn't
- * logged yet, so the chip doesn't flicker off before the user reads).
- */
-function calculateStreak(sessionDates: Set<string>, today: Date): number {
-  if (sessionDates.size === 0) return 0;
-  let streak = 0;
-  const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (!sessionDates.has(localDateString(cursor))) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  while (sessionDates.has(localDateString(cursor))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
 }
