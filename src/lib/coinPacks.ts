@@ -3,6 +3,10 @@
 // purchased Stripe product id → coins; this catalog is only for display + the
 // Payment Link the Buy button redirects to. Payment Link URLs are not secret.
 
+/** localStorage key holding `coinsPurchased` captured right before checkout, so
+ *  the return handler can report exactly how many coins the purchase added. */
+export const COIN_BASELINE_KEY = "coinPurchaseBaseline";
+
 export interface CoinPack {
   id: string;
   name: string;
