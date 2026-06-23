@@ -11,13 +11,24 @@ import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import { useSettings } from "@/store/settings";
 import { SHOP_PRICES, useProgression } from "@/lib/xp";
-import { COIN_PACKS, type CoinPack } from "@/lib/coinPacks";
+import { COIN_PACKS, COIN_BASELINE_KEY, type CoinPack } from "@/lib/coinPacks";
 import { localDateString } from "@/lib/dates";
 import { CoinBalance } from "./CoinBalance";
 
 /** Redirect to a Stripe Payment Link, tagging the session with the user id so
- *  the webhook can credit the right account. */
-function startCoinPurchase(pack: CoinPack, userId: string, email?: string | null) {
+ *  the webhook can credit the right account. Snapshots the current purchased
+ *  total first so we can report the delta on return. */
+function startCoinPurchase(
+  pack: CoinPack,
+  userId: string,
+  coinsPurchased: number,
+  email?: string | null,
+) {
+  try {
+    localStorage.setItem(COIN_BASELINE_KEY, String(coinsPurchased));
+  } catch {
+    /* ignore quota / privacy mode */
+  }
   const params = new URLSearchParams({ client_reference_id: userId });
   if (email) params.set("prefilled_email", email);
   window.location.href = `${pack.paymentUrl}?${params.toString()}`;
@@ -48,7 +59,7 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
   const { user } = useAuth();
   const { state } = useLibrary();
   const { settings, spendCoins, addFreeze, applyFreeze } = useSettings();
-  const { coinBalance } = useProgression();
+  const { coinBalance, coinsPurchased } = useProgression();
   const [flash, setFlash] = useState<string | null>(null);
 
   const inventory = settings.progression?.freezeInventory ?? 0;
@@ -100,7 +111,9 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
                 key={pack.id}
                 pack={pack}
                 disabled={!user}
-                onBuy={() => user && startCoinPurchase(pack, user.id, user.email)}
+                onBuy={() =>
+                  user && startCoinPurchase(pack, user.id, coinsPurchased, user.email)
+                }
               />
             ))}
           </ul>
