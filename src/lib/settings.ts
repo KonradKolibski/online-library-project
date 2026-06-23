@@ -3,12 +3,14 @@
  *  never stored here. */
 export interface ProgressionState {
   coinsSpent: number; // total coins ever spent in the shop
+  coinsPurchased: number; // total coins bought with money (written only by the Stripe webhook)
   freezeInventory: number; // bought-but-unused streak freezes
   frozenDates: string[]; // YYYY-MM-DD days protected by an applied freeze
 }
 
 export const EMPTY_PROGRESSION: ProgressionState = {
   coinsSpent: 0,
+  coinsPurchased: 0,
   freezeInventory: 0,
   frozenDates: [],
 };

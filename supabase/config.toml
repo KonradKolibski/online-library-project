@@ -20,3 +20,8 @@ verify_jwt = true
 # server-side OPENAI_API_KEY secret.
 [functions.search-sessions]
 verify_jwt = true
+
+# Stripe fulfillment webhook. Called by Stripe (no Supabase JWT), so the platform
+# gate must be off — the function verifies the Stripe signature instead.
+[functions.stripe-webhook]
+verify_jwt = false

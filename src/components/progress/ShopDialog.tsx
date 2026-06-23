@@ -7,11 +7,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
 import { useSettings } from "@/store/settings";
 import { SHOP_PRICES, useProgression } from "@/lib/xp";
+import { COIN_PACKS, type CoinPack } from "@/lib/coinPacks";
 import { localDateString } from "@/lib/dates";
 import { CoinBalance } from "./CoinBalance";
+
+/** Redirect to a Stripe Payment Link, tagging the session with the user id so
+ *  the webhook can credit the right account. */
+function startCoinPurchase(pack: CoinPack, userId: string, email?: string | null) {
+  const params = new URLSearchParams({ client_reference_id: userId });
+  if (email) params.set("prefilled_email", email);
+  window.location.href = `${pack.paymentUrl}?${params.toString()}`;
+}
 
 interface ShopDialogProps {
   open: boolean;
@@ -35,6 +45,7 @@ function mostRecentMissedDay(
 }
 
 export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
+  const { user } = useAuth();
   const { state } = useLibrary();
   const { settings, spendCoins, addFreeze, applyFreeze } = useSettings();
   const { coinBalance } = useProgression();
@@ -68,7 +79,7 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="s">
+      <DialogContent size="xl">
         <DialogHeader>
           <DialogTitle>Shop</DialogTitle>
         </DialogHeader>
@@ -78,32 +89,55 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
           <CoinBalance coins={coinBalance} />
         </div>
 
-        <ul className="space-y-2.5 pt-1">
-          <ShopItem
-            icon={Snowflake}
-            title="Streak Freeze"
-            description={
-              inventory > 0
-                ? `Protects one missed day. You own ${inventory}.`
-                : "Protects one missed day from breaking your streak."
-            }
-            price={SHOP_PRICES.freeze}
-            disabled={coinBalance < SHOP_PRICES.freeze}
-            onBuy={buyFreeze}
-          />
-          <ShopItem
-            icon={Wrench}
-            title="Streak Repair"
-            description={
-              repairTarget
-                ? `Instantly protects your most recent missed day (${repairTarget}).`
-                : "No recent missed day to repair."
-            }
-            price={SHOP_PRICES.repair}
-            disabled={coinBalance < SHOP_PRICES.repair || !repairTarget}
-            onBuy={buyRepair}
-          />
-        </ul>
+        {/* Get coins — Stripe-backed packs */}
+        <section className="space-y-2 pt-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Get coins
+          </h3>
+          <ul className="grid grid-cols-2 gap-2">
+            {COIN_PACKS.map((pack) => (
+              <CoinPackCard
+                key={pack.id}
+                pack={pack}
+                disabled={!user}
+                onBuy={() => user && startCoinPurchase(pack, user.id, user.email)}
+              />
+            ))}
+          </ul>
+        </section>
+
+        {/* Spend coins — consumables */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Spend coins
+          </h3>
+          <ul className="space-y-2.5">
+            <ShopItem
+              icon={Snowflake}
+              title="Streak Freeze"
+              description={
+                inventory > 0
+                  ? `Protects one missed day. You own ${inventory}.`
+                  : "Protects one missed day from breaking your streak."
+              }
+              price={SHOP_PRICES.freeze}
+              disabled={coinBalance < SHOP_PRICES.freeze}
+              onBuy={buyFreeze}
+            />
+            <ShopItem
+              icon={Wrench}
+              title="Streak Repair"
+              description={
+                repairTarget
+                  ? `Instantly protects your most recent missed day (${repairTarget}).`
+                  : "No recent missed day to repair."
+              }
+              price={SHOP_PRICES.repair}
+              disabled={coinBalance < SHOP_PRICES.repair || !repairTarget}
+              onBuy={buyRepair}
+            />
+          </ul>
+        </section>
 
         {flash && (
           <p className="text-sm text-emerald-600 dark:text-emerald-400 animate-rise-in">
@@ -112,6 +146,36 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CoinPackCard({
+  pack,
+  disabled,
+  onBuy,
+}: {
+  pack: CoinPack;
+  disabled: boolean;
+  onBuy: () => void;
+}) {
+  return (
+    <li className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
+      <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+        <Coins className="h-4 w-4" />
+        <span className="text-base font-semibold tabular-nums">
+          {pack.coins.toLocaleString()}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-tight">{pack.name}</p>
+      <Button
+        size="sm"
+        className="mt-auto w-full"
+        disabled={disabled}
+        onClick={onBuy}
+      >
+        {pack.priceLabel}
+      </Button>
+    </li>
   );
 }
 

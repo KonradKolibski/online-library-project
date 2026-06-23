@@ -44,6 +44,7 @@ export interface Progression {
   xpForNextLevel: number;
   coinsEarned: number;
   coinsSpent: number;
+  coinsPurchased: number;
   coinBalance: number;
   stats: ReadingStats;
   earnedAchievements: Set<string>;
@@ -176,6 +177,7 @@ export function computeProgression(
   sessions: ReadingSession[],
   frozenDates: Set<string>,
   coinsSpent: number,
+  coinsPurchased = 0,
 ): Progression {
   const stats = computeReadingStats(books, sessions, frozenDates);
   const { sessionXpTotal } = deriveSessions(books, sessions);
@@ -221,7 +223,8 @@ export function computeProgression(
     xpForNextLevel: next - base,
     coinsEarned,
     coinsSpent,
-    coinBalance: Math.max(0, coinsEarned - coinsSpent),
+    coinsPurchased,
+    coinBalance: Math.max(0, coinsEarned + coinsPurchased - coinsSpent),
     stats,
     earnedAchievements,
   };
@@ -274,7 +277,14 @@ export function useProgression(): Progression {
         state.sessions,
         new Set(progression?.frozenDates ?? []),
         progression?.coinsSpent ?? 0,
+        progression?.coinsPurchased ?? 0,
       ),
-    [state.books, state.sessions, progression?.frozenDates, progression?.coinsSpent],
+    [
+      state.books,
+      state.sessions,
+      progression?.frozenDates,
+      progression?.coinsSpent,
+      progression?.coinsPurchased,
+    ],
   );
 }
