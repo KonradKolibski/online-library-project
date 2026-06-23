@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -26,6 +27,8 @@ interface SettingsContextValue {
   /** Consume one freeze from inventory to protect a missed day. No-op if the
    *  day is already frozen or the inventory is empty. */
   applyFreeze: (date: string) => void;
+  /** Re-fetch settings from Supabase (e.g. after a server-side coin credit). */
+  reload: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -36,27 +39,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULTS);
   const loadedRef = useRef(false);
 
-  useEffect(() => {
-    loadedRef.current = false;
+  const load = useCallback(async () => {
     if (!userId) {
       setSettings(DEFAULTS);
       return;
     }
-    (async () => {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("data")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (error) {
-        // eslint-disable-next-line no-console
-        console.error("[settings] load", error);
-        return;
-      }
-      setSettings({ ...DEFAULTS, ...(data?.data as Partial<AppSettings> | undefined) });
-      loadedRef.current = true;
-    })();
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("data")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("[settings] load", error);
+      return;
+    }
+    setSettings({ ...DEFAULTS, ...(data?.data as Partial<AppSettings> | undefined) });
+    loadedRef.current = true;
   }, [userId]);
+
+  useEffect(() => {
+    loadedRef.current = false;
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!userId || !loadedRef.current) return;
@@ -106,7 +111,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ settings, update, spendCoins, addFreeze, applyFreeze }}
+      value={{ settings, update, spendCoins, addFreeze, applyFreeze, reload: load }}
     >
       {children}
     </SettingsContext.Provider>

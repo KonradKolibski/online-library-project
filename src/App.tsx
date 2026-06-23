@@ -12,6 +12,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { DocsPage } from "@/pages/DocsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { Blobs } from "@/components/illustrations/Blobs";
+import { PurchaseReturnHandler } from "@/components/progress/PurchaseReturnHandler";
 import { Onboarding, hasOnboarded } from "@/components/onboarding/Onboarding";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -65,6 +66,7 @@ function AuthedApp() {
       <LibraryProvider>
         <AddBookProvider>
           <Blobs />
+          <PurchaseReturnHandler onSuccess={() => navigate("stats")} />
           <AppShell
             currentView={view}
             onNavigate={navigate}
