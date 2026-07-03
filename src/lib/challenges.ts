@@ -30,6 +30,34 @@ export interface ChallengesResponse {
   newlyCompleted: ChallengeProgress[];
 }
 
+/**
+ * Whole days remaining until a challenge's end date (inclusive of today).
+ * null when the challenge has no end date (evergreen). Negative once past.
+ */
+export function daysLeft(endDate: string | null, now = new Date()): number | null {
+  if (!endDate) return null;
+  const [y, m, d] = endDate.split("-").map(Number);
+  const end = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((end.getTime() - today.getTime()) / 86_400_000);
+}
+
+/**
+ * Human label for time remaining, e.g. "5 days left", "Last day". Returns null
+ * when there's no deadline or it has already passed (nothing useful to show).
+ */
+export function timeLeftLabel(endDate: string | null, now = new Date()): string | null {
+  const d = daysLeft(endDate, now);
+  if (d === null || d < 0) return null;
+  if (d === 0) return "Last day";
+  if (d === 1) return "1 day left";
+  if (d < 7) return `${d} days left`;
+  if (d < 14) return "1 week left";
+  if (d < 30) return `${Math.floor(d / 7)} weeks left`;
+  const months = Math.round(d / 30);
+  return months <= 1 ? "1 month left" : `${months} months left`;
+}
+
 /** Human-readable unit for a goal type, e.g. "3 / 10 days". */
 export function goalUnit(goalType: ChallengeGoalType): string {
   switch (goalType) {

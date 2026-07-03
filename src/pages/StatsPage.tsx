@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatsHighlights } from "@/components/home/StatsHighlights";
 import { LevelCard } from "@/components/progress/LevelCard";
 import { AchievementsGrid } from "@/components/progress/AchievementsGrid";
+import { ChallengesGrid } from "@/components/progress/ChallengesGrid";
 import { ShopDialog } from "@/components/progress/ShopDialog";
 import { HowItWorksDialog } from "@/components/progress/HowItWorksDialog";
 
@@ -52,6 +53,8 @@ export function StatsPage() {
       <LevelCard progression={progression} />
 
       <AchievementsGrid earned={progression.earnedAchievements} />
+
+      <ChallengesGrid />
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Reading stats</h3>
