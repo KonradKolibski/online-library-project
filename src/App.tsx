@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { LibraryProvider } from "@/store/library";
 import { SettingsProvider } from "@/store/settings";
+import { ChallengesProvider } from "@/store/challenges";
 import { AddBookProvider } from "@/store/addBook";
 import { AuthProvider, useAuth } from "@/store/auth";
 import { AppShell } from "@/components/layout/AppShell";
@@ -64,33 +65,35 @@ function AuthedApp() {
   return (
     <SettingsProvider>
       <LibraryProvider>
-        <AddBookProvider>
-          <Blobs />
-          <PurchaseReturnHandler onSuccess={() => navigate("stats")} />
-          <AppShell
-            currentView={view}
-            onNavigate={navigate}
-            onOpenSettings={openSettings}
-            onOpenDocs={openDocs}
-          >
-            {view === "settings" ? (
-              <SettingsPage onBack={() => setView(prevMain)} />
-            ) : view === "docs" ? (
-              <DocsPage onBack={() => setView(prevMain)} />
-            ) : view === "home" ? (
-              <HomePage onNavigate={navigate} onOpenSettings={openSettings} />
-            ) : view === "discover" ? (
-              <DiscoverPage />
-            ) : view === "stats" ? (
-              <StatsPage />
-            ) : (
-              <LibraryPage />
+        <ChallengesProvider>
+          <AddBookProvider>
+            <Blobs />
+            <PurchaseReturnHandler onSuccess={() => navigate("stats")} />
+            <AppShell
+              currentView={view}
+              onNavigate={navigate}
+              onOpenSettings={openSettings}
+              onOpenDocs={openDocs}
+            >
+              {view === "settings" ? (
+                <SettingsPage onBack={() => setView(prevMain)} />
+              ) : view === "docs" ? (
+                <DocsPage onBack={() => setView(prevMain)} />
+              ) : view === "home" ? (
+                <HomePage onNavigate={navigate} onOpenSettings={openSettings} />
+              ) : view === "discover" ? (
+                <DiscoverPage />
+              ) : view === "stats" ? (
+                <StatsPage />
+              ) : (
+                <LibraryPage />
+              )}
+            </AppShell>
+            {showOnboarding && (
+              <Onboarding onDone={() => setShowOnboarding(false)} />
             )}
-          </AppShell>
-          {showOnboarding && (
-            <Onboarding onDone={() => setShowOnboarding(false)} />
-          )}
-        </AddBookProvider>
+          </AddBookProvider>
+        </ChallengesProvider>
       </LibraryProvider>
     </SettingsProvider>
   );
