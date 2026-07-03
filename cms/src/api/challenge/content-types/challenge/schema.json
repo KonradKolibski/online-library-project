@@ -1,0 +1,64 @@
+{
+  "kind": "collectionType",
+  "collectionName": "challenges",
+  "info": {
+    "singularName": "challenge",
+    "pluralName": "challenges",
+    "displayName": "Challenge",
+    "description": "A reading challenge authored in the CMS. The app's `challenges` edge function evaluates each user's reading sessions against it and grants the coin/XP reward on completion."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "description": {
+      "type": "text"
+    },
+    "coverUrl": {
+      "type": "string",
+      "description": "Plain image URL. Used instead of a media field so no object storage is required on Railway's ephemeral filesystem."
+    },
+    "goalType": {
+      "type": "enumeration",
+      "enum": [
+        "days_logged",
+        "books_finished",
+        "pages_read",
+        "minutes_read",
+        "distinct_genres"
+      ],
+      "required": true,
+      "default": "days_logged"
+    },
+    "target": {
+      "type": "integer",
+      "required": true,
+      "min": 1
+    },
+    "startDate": {
+      "type": "date"
+    },
+    "endDate": {
+      "type": "date"
+    },
+    "xpReward": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "coinReward": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    }
+  }
+}

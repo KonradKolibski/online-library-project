@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Book, ReadingSession } from "@/types/book";
 import { useLibrary } from "@/store/library";
 import { useSettings } from "@/store/settings";
+import { useChallenges } from "@/store/challenges";
 import { localDateString } from "./dates";
 import { calculateStreak, longestStreak } from "./streak";
 import {
@@ -45,6 +46,7 @@ export interface Progression {
   coinsEarned: number;
   coinsSpent: number;
   coinsPurchased: number;
+  coinsFromChallenges: number;
   coinBalance: number;
   stats: ReadingStats;
   earnedAchievements: Set<string>;
@@ -178,6 +180,8 @@ export function computeProgression(
   frozenDates: Set<string>,
   coinsSpent: number,
   coinsPurchased = 0,
+  coinsFromChallenges = 0,
+  xpFromChallenges = 0,
 ): Progression {
   const stats = computeReadingStats(books, sessions, frozenDates);
   const { sessionXpTotal } = deriveSessions(books, sessions);
@@ -209,7 +213,7 @@ export function computeProgression(
     }
   }
 
-  const totalXp = sessionXpTotal + bookXp + streakXp + achievementXp;
+  const totalXp = sessionXpTotal + bookXp + streakXp + achievementXp + xpFromChallenges;
   const level = levelForXp(totalXp);
   const base = totalXpForLevel(level);
   const next = totalXpForLevel(level + 1);
@@ -224,7 +228,11 @@ export function computeProgression(
     coinsEarned,
     coinsSpent,
     coinsPurchased,
-    coinBalance: Math.max(0, coinsEarned + coinsPurchased - coinsSpent),
+    coinsFromChallenges,
+    coinBalance: Math.max(
+      0,
+      coinsEarned + coinsPurchased + coinsFromChallenges - coinsSpent,
+    ),
     stats,
     earnedAchievements,
   };
@@ -268,6 +276,7 @@ function computeStreakXp(readSet: Set<string>, frozenDates: Set<string>): number
 export function useProgression(): Progression {
   const { state } = useLibrary();
   const { settings } = useSettings();
+  const { coinsFromChallenges, xpFromChallenges } = useChallenges();
   const progression = settings.progression;
 
   return useMemo(
@@ -278,6 +287,8 @@ export function useProgression(): Progression {
         new Set(progression?.frozenDates ?? []),
         progression?.coinsSpent ?? 0,
         progression?.coinsPurchased ?? 0,
+        coinsFromChallenges,
+        xpFromChallenges,
       ),
     [
       state.books,
@@ -285,6 +296,8 @@ export function useProgression(): Progression {
       progression?.frozenDates,
       progression?.coinsSpent,
       progression?.coinsPurchased,
+      coinsFromChallenges,
+      xpFromChallenges,
     ],
   );
 }

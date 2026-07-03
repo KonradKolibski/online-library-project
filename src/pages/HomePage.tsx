@@ -13,6 +13,7 @@ import { CurrentlyReadingRow } from "@/components/home/CurrentlyReadingRow";
 import { WeeklyFeaturedBook } from "@/components/home/WeeklyFeaturedBook";
 import { WeeklyReadingGoalCard } from "@/components/home/WeeklyReadingGoalCard";
 import { FavouriteAuthorsCard } from "@/components/home/FavouriteAuthorsCard";
+import { ChallengesCard } from "@/components/home/ChallengesCard";
 import { StatsHighlights } from "@/components/home/StatsHighlights";
 import { pickWeeklyFeatured } from "@/lib/weeklyPick";
 
@@ -175,6 +176,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
         favouriteAuthors={favouriteAuthors}
         onSelect={setSelected}
       />
+
+      <ChallengesCard />
 
       {selectedLive && (
         <BookDetail

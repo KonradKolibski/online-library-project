@@ -1,0 +1,5 @@
+# The Strapi scaffolder's package-lock.json has version inconsistencies (zod,
+# picomatch, …) that only newer local npm tolerates; Railway's `npm ci` rejects
+# them. Excluding the lock from the deploy makes Railpack fall back to
+# `npm install`, which re-resolves cleanly. The lock is kept locally for dev.
+package-lock.json

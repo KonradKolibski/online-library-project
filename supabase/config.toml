@@ -25,3 +25,9 @@ verify_jwt = true
 # gate must be off — the function verifies the Stripe signature instead.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# First-party reading-challenge evaluator called from the browser with the user's
+# JWT. Resolves the user via auth.getUser(), reads challenge definitions from
+# Strapi (STRAPI_URL / STRAPI_API_TOKEN secrets), and grants coin/XP rewards.
+[functions.challenges]
+verify_jwt = true
