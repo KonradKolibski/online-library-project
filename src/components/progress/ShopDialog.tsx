@@ -13,6 +13,7 @@ import { useSettings } from "@/store/settings";
 import { SHOP_PRICES, useProgression } from "@/lib/xp";
 import { COIN_PACKS, COIN_BASELINE_KEY, type CoinPack } from "@/lib/coinPacks";
 import { localDateString } from "@/lib/dates";
+import { track } from "@/lib/analytics";
 import { CoinBalance } from "./CoinBalance";
 
 /** Redirect to a Stripe Payment Link, tagging the session with the user id so
@@ -29,6 +30,7 @@ function startCoinPurchase(
   } catch {
     /* ignore quota / privacy mode */
   }
+  track("coin_purchase_started", { pack: pack.id, coins: pack.coins });
   const params = new URLSearchParams({ client_reference_id: userId });
   if (email) params.set("prefilled_email", email);
   window.location.href = `${pack.paymentUrl}?${params.toString()}`;
@@ -76,6 +78,7 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
     if (coinBalance < SHOP_PRICES.freeze) return;
     // Spend + add a freeze to inventory in one atomic server transaction.
     spendCoins(SHOP_PRICES.freeze, { freezeDelta: 1 });
+    track("coins_spent", { item: "streak_freeze", amount: SHOP_PRICES.freeze });
     setFlash("Streak freeze added to your inventory.");
   }
 
@@ -84,6 +87,7 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
     if (coinBalance < SHOP_PRICES.repair || !repairTarget) return;
     // Spend and immediately protect the missed day (net freeze inventory: +0).
     spendCoins(SHOP_PRICES.repair, { frozenDate: repairTarget });
+    track("coins_spent", { item: "streak_repair", amount: SHOP_PRICES.repair });
     setFlash(`Streak repaired — ${repairTarget} is now protected.`);
   }
 

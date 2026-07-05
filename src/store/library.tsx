@@ -17,6 +17,7 @@ import type {
 } from "@/types/book";
 import { newId } from "@/lib/id";
 import { supabase } from "@/lib/supabase";
+import { track } from "@/lib/analytics";
 import { useAuth } from "@/store/auth";
 import {
   bookPatchToRow,
@@ -295,6 +296,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const now = new Date().toISOString();
         const book: Book = { id: newId(), createdAt: now, updatedAt: now, ...input };
         dispatch({ type: "addBook", book });
+        track("book_added", {
+          status: book.status,
+          has_isbn: Boolean(book.isbn),
+          has_cover: Boolean(book.coverUrl),
+          has_pages: typeof book.pages === "number",
+        });
         (async () => {
           const { error } = await supabase.from("books").insert(bookToRow(book, uid));
           if (error) throw error;
@@ -530,6 +537,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         }
 
         dispatch({ type: "addSession", session, bookPatches, updatedAt: now });
+        track("reading_session_logged", {
+          minutes: input.minutes ?? null,
+          mood: input.mood ?? null,
+          has_notes: Boolean(input.notes?.trim()),
+          has_quote: Boolean(input.quote?.trim()),
+          books: input.bookProgresses.length,
+          books_finished: Object.values(bookPatches).filter(
+            (p) => p.status === "finished",
+          ).length,
+        });
 
         (async () => {
           const { error: sErr } = await supabase
