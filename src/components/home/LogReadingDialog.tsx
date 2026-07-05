@@ -443,12 +443,14 @@ function StepDetails({
       {/* Notes (optional) */}
       <section className="space-y-1.5">
         <Label htmlFor="session-notes">Notes (optional)</Label>
+        {/* ph-no-capture: personal journal text is redacted from PostHog session recordings. */}
         <Textarea
           id="session-notes"
           rows={3}
           placeholder="What stuck with you?"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          className="ph-no-capture"
         />
       </section>
 
@@ -461,6 +463,7 @@ function StepDetails({
           placeholder="A line you want to remember"
           value={quote}
           onChange={(e) => setQuote(e.target.value)}
+          className="ph-no-capture"
         />
         {quote.trim() && (
           <Input
@@ -470,7 +473,7 @@ function StepDetails({
             placeholder="Page (optional)"
             value={quotePage}
             onChange={(e) => setQuotePage(e.target.value)}
-            className="w-32"
+            className="w-32 ph-no-capture"
           />
         )}
       </section>

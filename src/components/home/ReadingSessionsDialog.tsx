@@ -233,7 +233,7 @@ function SessionRow({
             )}
           </div>
           {snippet && (
-            <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+            <p className="ph-no-capture mt-1 text-xs text-muted-foreground line-clamp-1">
               {snippet}
             </p>
           )}
@@ -335,7 +335,7 @@ function SessionDetail({
         {session.notes?.trim() && (
           <section className="space-y-1.5">
             <h3 className="text-sm font-semibold">Notes</h3>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            <p className="ph-no-capture whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
               {session.notes}
             </p>
           </section>
@@ -348,7 +348,7 @@ function SessionDetail({
               <QuoteIcon className="h-4 w-4" />
               Quote
             </h3>
-            <blockquote className="border-l-2 border-primary/40 pl-3 text-sm italic leading-relaxed text-muted-foreground">
+            <blockquote className="ph-no-capture border-l-2 border-primary/40 pl-3 text-sm italic leading-relaxed text-muted-foreground">
               &ldquo;{session.quote}&rdquo;
               {typeof session.quotePage === "number" && (
                 <span className="mt-1 block not-italic text-xs">

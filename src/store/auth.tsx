@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { identifyUser, resetAnalytics } from "@/lib/analytics";
 
 interface AuthContextValue {
   user: User | null;
@@ -34,6 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // Tie analytics identity to the signed-in user (no-op when analytics is off).
+  const userId = session?.user?.id ?? null;
+  useEffect(() => {
+    if (userId) identifyUser(userId, session?.user?.email);
+    else resetAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const value: AuthContextValue = {
     user: session?.user ?? null,

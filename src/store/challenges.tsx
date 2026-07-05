@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useAuth } from "@/store/auth";
 import { useLibrary } from "@/store/library";
+import { track } from "@/lib/analytics";
 import {
   evaluateChallenges,
   fetchChallengeRewardTotals,
@@ -62,7 +63,17 @@ export function ChallengesProvider({ children }: { children: ReactNode }) {
     try {
       const { challenges: list, newlyCompleted: newly } = await evaluateChallenges();
       setChallenges(list);
-      if (newly.length) setNewlyCompleted(newly);
+      if (newly.length) {
+        setNewlyCompleted(newly);
+        for (const c of newly) {
+          track("challenge_completed", {
+            challenge_id: c.id,
+            goal_type: c.goalType,
+            coin_reward: c.coinReward,
+            xp_reward: c.xpReward,
+          });
+        }
+      }
       // Reload granted totals (the evaluation may have inserted completions).
       const totals = await fetchChallengeRewardTotals(userId);
       setRewards(totals);
