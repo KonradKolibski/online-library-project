@@ -20,10 +20,16 @@ const DEFAULTS: AppSettings = {
 interface SettingsContextValue {
   settings: AppSettings;
   update: (patch: Partial<AppSettings>) => void;
-  /** Record coins spent in the shop. */
-  spendCoins: (amount: number) => void;
-  /** Add a purchased (unused) streak freeze to the inventory. */
-  addFreeze: (count?: number) => void;
+  /**
+   * Make a shop purchase atomically on the server: spend `amount` coins and,
+   * optionally, adjust the streak-freeze inventory / protect a day — all in one
+   * transaction. The UI balance is refreshed from the DB result. Overspend must
+   * be gated by the caller (it knows the derived balance).
+   */
+  spendCoins: (
+    amount: number,
+    opts?: { freezeDelta?: number; frozenDate?: string },
+  ) => void;
   /** Consume one freeze from inventory to protect a missed day. No-op if the
    *  day is already frozen or the inventory is empty. */
   applyFreeze: (date: string) => void;
@@ -84,18 +90,45 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   function updateProgression(fn: (p: ProgressionState) => ProgressionState) {
     setSettings((prev) => ({
       ...prev,
-      progression: fn(prev.progression ?? EMPTY_PROGRESSION),
+      // Merge onto EMPTY_PROGRESSION so a partially-populated row (e.g. one the
+      // Stripe webhook wrote with only coinsPurchased) can never yield an
+      // `undefined` numeric field, which would turn arithmetic into NaN.
+      progression: fn({ ...EMPTY_PROGRESSION, ...prev.progression }),
     }));
     loadedRef.current = true;
   }
 
-  function spendCoins(amount: number) {
-    if (amount <= 0) return;
-    updateProgression((p) => ({ ...p, coinsSpent: p.coinsSpent + amount }));
-  }
-
-  function addFreeze(count = 1) {
-    updateProgression((p) => ({ ...p, freezeInventory: p.freezeInventory + count }));
+  /**
+   * Run a shop purchase through the atomic `spend_coins` RPC (single locked
+   * read-modify-write server-side, so the new balance is `old − cost` and never
+   * NaN), then refresh the whole progression from the DB's returned value in one
+   * state update — no split writes that a blanket upsert could persist out of
+   * order. Overspend is gated by the caller.
+   */
+  async function spendCoins(
+    amount: number,
+    opts?: { freezeDelta?: number; frozenDate?: string },
+  ) {
+    if (!userId || amount <= 0) return;
+    const { data, error } = await supabase.rpc("spend_coins", {
+      p_amount: Math.round(amount),
+      p_freeze_delta: opts?.freezeDelta ?? 0,
+      p_frozen_date: opts?.frozenDate ?? null,
+    });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("[settings] spendCoins", error);
+      return;
+    }
+    // The RPC returns the authoritative progression (coinsSpent/freezeInventory/
+    // frozenDates all numeric). Merge onto EMPTY_PROGRESSION so nothing is ever
+    // undefined, and over prev so unrelated fields survive.
+    const returned = (data ?? {}) as Partial<ProgressionState>;
+    setSettings((prev) => ({
+      ...prev,
+      progression: { ...EMPTY_PROGRESSION, ...prev.progression, ...returned },
+    }));
+    loadedRef.current = true;
   }
 
   function applyFreeze(date: string) {
@@ -111,7 +144,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ settings, update, spendCoins, addFreeze, applyFreeze, reload: load }}
+      value={{ settings, update, spendCoins, applyFreeze, reload: load }}
     >
       {children}
     </SettingsContext.Provider>
