@@ -58,7 +58,7 @@ function mostRecentMissedDay(
 export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
   const { user } = useAuth();
   const { state } = useLibrary();
-  const { settings, spendCoins, addFreeze, applyFreeze } = useSettings();
+  const { settings, spendCoins } = useSettings();
   const { coinBalance, coinsPurchased } = useProgression();
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -74,17 +74,16 @@ export function ShopDialog({ open, onOpenChange }: ShopDialogProps) {
 
   function buyFreeze() {
     if (coinBalance < SHOP_PRICES.freeze) return;
-    spendCoins(SHOP_PRICES.freeze);
-    addFreeze(1);
+    // Spend + add a freeze to inventory in one atomic server transaction.
+    spendCoins(SHOP_PRICES.freeze, { freezeDelta: 1 });
     setFlash("Streak freeze added to your inventory.");
   }
 
   const repairTarget = mostRecentMissedDay(readSet, frozenSet, new Date());
   function buyRepair() {
     if (coinBalance < SHOP_PRICES.repair || !repairTarget) return;
-    spendCoins(SHOP_PRICES.repair);
-    addFreeze(1);
-    applyFreeze(repairTarget);
+    // Spend and immediately protect the missed day (net freeze inventory: +0).
+    spendCoins(SHOP_PRICES.repair, { frozenDate: repairTarget });
     setFlash(`Streak repaired — ${repairTarget} is now protected.`);
   }
 
