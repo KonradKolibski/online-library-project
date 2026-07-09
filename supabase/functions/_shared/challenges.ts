@@ -44,7 +44,8 @@ interface StrapiEntry {
   id?: number | string;
   title?: string;
   description?: string | null;
-  coverUrl?: string | null;
+  // Uploaded media relation (Supabase Storage). Populated via ?populate=cover.
+  cover?: { url?: string | null } | null;
   goalType?: string;
   target?: number;
   startDate?: string | null;
@@ -71,7 +72,7 @@ export async function fetchStrapiChallenges(
   token: string | undefined,
 ): Promise<Challenge[]> {
   const base = strapiUrl.replace(/\/+$/, "");
-  const url = `${base}/api/challenges?pagination[pageSize]=100&sort=createdAt:desc`;
+  const url = `${base}/api/challenges?populate=cover&pagination[pageSize]=100&sort=createdAt:desc`;
   const headers: Record<string, string> = { Accept: "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -92,7 +93,7 @@ export async function fetchStrapiChallenges(
       id,
       title: r.title,
       description: r.description ?? null,
-      coverUrl: r.coverUrl ?? null,
+      coverUrl: r.cover?.url ?? null,
       goalType: goalType as ChallengeGoalType,
       target: r.target,
       startDate: r.startDate ?? null,

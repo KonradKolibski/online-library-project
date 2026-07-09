@@ -78,16 +78,25 @@ function ChallengeRow({ challenge: c }: { challenge: ChallengeProgress }) {
       )}
     >
       <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-            c.completed
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-              : "bg-primary/15 text-primary",
-          )}
-        >
-          {c.completed ? <Trophy className="h-5 w-5" /> : <Target className="h-5 w-5" />}
-        </span>
+        {c.coverUrl ? (
+          <img
+            src={c.coverUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-lg object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <span
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+              c.completed
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                : "bg-primary/15 text-primary",
+            )}
+          >
+            {c.completed ? <Trophy className="h-5 w-5" /> : <Target className="h-5 w-5" />}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-medium leading-tight line-clamp-1">{c.title}</p>

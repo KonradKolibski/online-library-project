@@ -23,9 +23,11 @@
     "description": {
       "type": "text"
     },
-    "coverUrl": {
-      "type": "string",
-      "description": "Plain image URL. Used instead of a media field so no object storage is required on Railway's ephemeral filesystem."
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
     },
     "goalType": {
       "type": "enumeration",
