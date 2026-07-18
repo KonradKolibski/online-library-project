@@ -8,6 +8,7 @@ import { calculateStreak, longestStreak } from "./streak";
 import {
   ACHIEVEMENTS,
   evaluateAchievements,
+  type AchievementTrack,
   type ReadingStats,
 } from "./achievements";
 
@@ -158,7 +159,14 @@ export function computeReadingStats(
     if (daySet.size === daysInMonth) perfectMonths++;
   }
 
-  const moods = new Set(sessions.map((s) => s.mood).filter(Boolean));
+  // moodRounds: how many times *every* one of the 5 moods has been logged —
+  // the minimum count across all mood types (0 until all five appear).
+  const moodCounts = new Map<string, number>();
+  for (const s of sessions) {
+    if (s.mood) moodCounts.set(s.mood, (moodCounts.get(s.mood) ?? 0) + 1);
+  }
+  const MOOD_TYPES = 5;
+  const moodRounds = moodCounts.size >= MOOD_TYPES ? Math.min(...moodCounts.values()) : 0;
 
   return {
     currentStreak: calculateStreak(readSet, new Date(), frozenDates),
@@ -166,7 +174,7 @@ export function computeReadingStats(
     booksFinished: books.filter((b) => b.status === "finished").length,
     totalPagesRead,
     daysLogged: readSet.size,
-    moodsUsed: moods.size,
+    moodRounds,
     quotesLogged: sessions.filter((s) => s.quote?.trim()).length,
     perfectMonths,
   };
@@ -241,6 +249,146 @@ export function computeProgression(
 function addDays(key: string, n: number): string {
   const [y, m, d] = key.split("-").map(Number);
   return localDateString(new Date(y, m - 1, d + n));
+}
+
+// ── Unlock-date reconstruction ────────────────────────────────────────────────
+// Achievements aren't timestamped, so the "unlocked on" date is reconstructed
+// from reading history: the local date on which a track's FIRST level threshold
+// was first satisfied. Returns a YYYY-MM-DD string, or null if not yet unlocked.
+
+export function reconstructUnlockDate(
+  track: AchievementTrack,
+  books: Book[],
+  sessions: ReadingSession[],
+  frozenDates: Set<string>,
+): string | null {
+  const threshold = track.levels[0]?.threshold ?? Infinity;
+
+  switch (track.id) {
+    case "streak":
+      return streakReachDate(new Set(sessions.map((s) => s.date)), frozenDates, threshold);
+
+    case "books": {
+      const finished = books
+        .filter((b) => b.status === "finished")
+        .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+      const book = finished[threshold - 1];
+      return book ? localDateString(new Date(book.updatedAt)) : null;
+    }
+
+    case "pages":
+      return pagesCrossDate(books, sessions, threshold);
+
+    case "quotes": {
+      const quoted = sessions
+        .filter((s) => s.quote?.trim())
+        .sort((a, b) => a.date.localeCompare(b.date));
+      return quoted[threshold - 1]?.date ?? null;
+    }
+
+    case "moods": {
+      // Date the min count across all 5 moods first reaches `threshold`.
+      const counts = new Map<string, number>();
+      const MOOD_TYPES = 5;
+      for (const s of [...sessions].sort((a, b) => a.date.localeCompare(b.date))) {
+        if (!s.mood) continue;
+        counts.set(s.mood, (counts.get(s.mood) ?? 0) + 1);
+        if (counts.size >= MOOD_TYPES && Math.min(...counts.values()) >= threshold) return s.date;
+      }
+      return null;
+    }
+
+    case "perfect":
+      return firstPerfectMonthDate(new Set(sessions.map((s) => s.date)));
+
+    default:
+      return null;
+  }
+}
+
+/** Date the longest run first reaches `threshold` consecutive read-days. */
+function streakReachDate(
+  readSet: Set<string>,
+  frozenDates: Set<string>,
+  threshold: number,
+): string | null {
+  const days = [...readSet].sort();
+  let run = 0;
+  let prev: string | null = null;
+  for (const day of days) {
+    if (prev === null) {
+      run = 1;
+    } else {
+      let bridged = true;
+      let cursor = addDays(prev, 1);
+      while (cursor < day) {
+        if (!frozenDates.has(cursor)) {
+          bridged = false;
+          break;
+        }
+        cursor = addDays(cursor, 1);
+      }
+      run = bridged ? run + 1 : 1;
+    }
+    if (run >= threshold) return day;
+    prev = day;
+  }
+  return null;
+}
+
+/** Date cumulative pages read first cross `threshold` (same high-water logic). */
+function pagesCrossDate(
+  books: Book[],
+  sessions: ReadingSession[],
+  threshold: number,
+): string | null {
+  const bookById = new Map(books.map((b) => [b.id, b]));
+  const lastProgress = new Map<string, number>();
+  const ordered = [...sessions].sort((a, b) =>
+    a.date !== b.date ? a.date.localeCompare(b.date) : a.createdAt.localeCompare(b.createdAt),
+  );
+  let cumulative = 0;
+  for (const s of ordered) {
+    for (const bp of s.bookProgresses) {
+      const book = bookById.get(bp.bookId);
+      if (!book) continue;
+      const prev = lastProgress.get(bp.bookId) ?? 0;
+      const delta = bp.newProgress - prev;
+      if (delta > 0) {
+        cumulative +=
+          typeof book.pages === "number" && book.pages > 0
+            ? Math.round((delta / 100) * book.pages)
+            : XP_CONFIG.pagesFallbackPerBook;
+        lastProgress.set(bp.bookId, bp.newProgress);
+      } else {
+        lastProgress.set(bp.bookId, Math.max(prev, bp.newProgress));
+      }
+    }
+    if (cumulative >= threshold) return s.date;
+  }
+  return null;
+}
+
+/** Last day of the earliest calendar month with every day logged. */
+function firstPerfectMonthDate(readSet: Set<string>): string | null {
+  const byMonth = new Map<string, Set<number>>();
+  for (const key of readSet) {
+    const [y, m, d] = key.split("-").map(Number);
+    const mk = `${y}-${String(m).padStart(2, "0")}`;
+    const set = byMonth.get(mk) ?? new Set<number>();
+    set.add(d);
+    byMonth.set(mk, set);
+  }
+  const perfect = [...byMonth.entries()]
+    .filter(([mk, daySet]) => {
+      const [y, m] = mk.split("-").map(Number);
+      return daySet.size === new Date(y, m, 0).getDate();
+    })
+    .map(([mk]) => mk)
+    .sort();
+  if (perfect.length === 0) return null;
+  const [y, m] = perfect[0].split("-").map(Number);
+  return localDateString(new Date(y, m - 1, new Date(y, m, 0).getDate()));
 }
 
 /** Sum of streakDailyXp · min(run, cap) over every read-day (frozen bridges gaps). */

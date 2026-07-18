@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { HelpCircle, Store } from "lucide-react";
 import { useLibrary } from "@/store/library";
+import { useSettings } from "@/store/settings";
 import { useProgression } from "@/lib/xp";
 import { Button } from "@/components/ui/button";
 import { StatsHighlights } from "@/components/home/StatsHighlights";
 import { LevelCard } from "@/components/progress/LevelCard";
+import { StreakCard } from "@/components/progress/StreakCard";
 import { AchievementsGrid } from "@/components/progress/AchievementsGrid";
 import { ChallengesGrid } from "@/components/progress/ChallengesGrid";
 import { ShopDialog } from "@/components/progress/ShopDialog";
@@ -12,9 +14,15 @@ import { HowItWorksDialog } from "@/components/progress/HowItWorksDialog";
 
 export function StatsPage() {
   const { state } = useLibrary();
+  const { settings } = useSettings();
   const progression = useProgression();
   const [shopOpen, setShopOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
+
+  const frozenDates = useMemo(
+    () => new Set(settings.progression?.frozenDates ?? []),
+    [settings.progression?.frozenDates],
+  );
 
   const { booksThisYear, pagesThisYear, totalMinutes } = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -50,11 +58,23 @@ export function StatsPage() {
         </div>
       </div>
 
-      <LevelCard progression={progression} />
-
-      <AchievementsGrid earned={progression.earnedAchievements} />
+      <div className="grid gap-4 sm:grid-cols-[1fr_max(370px,30%)] items-stretch">
+        <LevelCard progression={progression} />
+        <StreakCard
+          streak={progression.stats.currentStreak}
+          sessions={state.sessions}
+          frozenDates={frozenDates}
+        />
+      </div>
 
       <ChallengesGrid />
+
+      <AchievementsGrid
+        stats={progression.stats}
+        books={state.books}
+        sessions={state.sessions}
+        frozenDates={frozenDates}
+      />
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Reading stats</h3>
