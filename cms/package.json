@@ -15,14 +15,14 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
-    "@strapi/plugin-cloud": "5.50.0",
-    "@strapi/plugin-users-permissions": "5.50.0",
-    "@strapi/strapi": "5.50.0",
+    "@strapi/plugin-cloud": "5.50.1",
+    "@strapi/plugin-users-permissions": "5.50.1",
+    "@strapi/strapi": "5.50.1",
     "better-sqlite3": "12.8.0",
     "pg": "^8.13.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "^6.0.0",
+    "react-router-dom": "6.30.4",
     "strapi-provider-upload-supabase": "file:providers/upload-supabase",
     "styled-components": "^6.0.0"
   },
@@ -33,7 +33,9 @@
     "typescript": "^5"
   },
   "overrides": {
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "react-router-dom": "6.30.4",
+    "react-router": "6.30.4"
   },
   "engines": {
     "node": ">=20.0.0 <=26.x.x",
