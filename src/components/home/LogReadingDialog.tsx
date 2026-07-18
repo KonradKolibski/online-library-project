@@ -426,10 +426,10 @@ function StepDetails({
                 onClick={() => setMood(selected ? undefined : m.value)}
                 aria-pressed={selected}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-100 active:translate-y-px",
                   selected
-                    ? "bg-primary/10 border-primary/40 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-accent/40",
+                    ? "bg-primary/10 border-transparent text-foreground shadow-[0_3px_0_0_rgba(107,96,230,0.4)] active:shadow-[0_1px_0_0_rgba(107,96,230,0.4)]"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent/40 shadow-[0_3px_0_0_hsl(var(--border))] active:shadow-[0_1px_0_0_hsl(var(--border))]",
                 )}
               >
                 <span aria-hidden="true">{m.emoji}</span>

@@ -107,11 +107,11 @@ export function AppShell({
                   type="button"
                   onClick={() => handleNavigate(id)}
                   className={cn(
-                    "relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    "relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-all duration-100",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                      ? "bg-primary/10 text-primary shadow-[0_3px_0_0_rgba(107,96,230,0.4)] active:translate-y-[2px] active:shadow-[0_1px_0_0_rgba(107,96,230,0.4)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 active:translate-y-px",
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
@@ -134,7 +134,7 @@ export function AppShell({
             />
             {onOpenDocs && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
                 onClick={onOpenDocs}
                 aria-label="API docs"
@@ -145,7 +145,7 @@ export function AppShell({
             )}
             {onOpenSettings && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
                 onClick={onOpenSettings}
                 aria-label="Settings"

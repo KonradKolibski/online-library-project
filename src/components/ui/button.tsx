@@ -4,15 +4,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-display text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-display text-sm font-semibold ring-offset-background transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
+      // Duolingo-style: a solid 3D bottom "lip" that presses down on click.
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] active:translate-y-[3px] active:shadow-[0_1px_0_0_rgba(0,0,0,0.22)]",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] active:translate-y-[3px] active:shadow-[0_1px_0_0_rgba(0,0,0,0.22)]",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-[0_3px_0_0_hsl(var(--border))] active:translate-y-[2px] active:shadow-[0_1px_0_0_hsl(var(--border))]",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-[0_4px_0_0_hsl(var(--border))] active:translate-y-[3px] active:shadow-[0_1px_0_0_hsl(var(--border))]",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

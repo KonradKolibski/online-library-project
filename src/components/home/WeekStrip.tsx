@@ -157,7 +157,7 @@ export function WeekStrip({
         type="button"
         onClick={onLogReading}
         aria-label={loggedToday ? "Edit today's reading session" : "Log a reading session"}
-        className="group shrink-0 sm:w-32 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-indigo-500 px-5 py-3.5 text-primary-foreground shadow-sm transition-all hover:shadow-md hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="group shrink-0 sm:w-32 flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-1.5 rounded-2xl bg-gradient-to-br from-primary to-indigo-500 px-5 py-3.5 text-primary-foreground transition-all duration-100 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] active:translate-y-[3px] active:shadow-[0_1px_0_0_rgba(0,0,0,0.22)]"
       >
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/25">
           {loggedToday ? (

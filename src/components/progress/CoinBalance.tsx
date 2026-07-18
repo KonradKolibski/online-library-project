@@ -27,7 +27,8 @@ export function CoinBalance({ coins, onClick, className }: CoinBalanceProps) {
         aria-label={`${coins} coins — open shop`}
         className={cn(
           base,
-          "transition-colors hover:bg-amber-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "transition-all duration-100 hover:bg-amber-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "shadow-[0_3px_0_0_rgba(245,158,11,0.35)] active:translate-y-[2px] active:shadow-[0_1px_0_0_rgba(245,158,11,0.35)]",
           className,
         )}
       >
