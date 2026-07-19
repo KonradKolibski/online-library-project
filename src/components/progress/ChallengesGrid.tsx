@@ -10,6 +10,7 @@ import {
 } from "@/lib/challenges";
 import { ProgressBar } from "@/components/progress/ProgressBar";
 import { ChallengeDetailDialog } from "@/components/progress/ChallengeDetailDialog";
+import { LoadingState } from "@/components/ui/loading-state";
 import { cn } from "@/lib/utils";
 
 /** Colourful card themes, cycled by challenge index. */
@@ -90,7 +91,7 @@ export function ChallengesGrid() {
       </>
     );
   }
-  if (loading) return <div className="h-40 rounded-2xl bg-muted/40 animate-pulse" />;
+  if (loading) return <LoadingState size="sm" label="Loading challenges…" className="py-6" />;
   return <EmptyState />;
 }
 

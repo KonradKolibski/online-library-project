@@ -83,6 +83,11 @@ const config: Config = {
           "0%": { transform: "translateY(8px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
+        // Sweeps a light band across text (used with bg-clip-text).
+        shine: {
+          "0%": { backgroundPosition: "200% 50%" },
+          "100%": { backgroundPosition: "-200% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -91,6 +96,7 @@ const config: Config = {
         "check-draw": "check-draw 0.4s 0.25s ease-out both",
         "success-ring": "success-ring 0.9s 0.1s ease-out both",
         "rise-in": "rise-in 0.4s 0.25s ease-out both",
+        shine: "shine 2.4s linear infinite",
       },
     },
   },
