@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Copy, Loader2, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 import {
   type ApiTokenRecord,
   createToken,
@@ -123,7 +124,7 @@ export function ApiTokenManager() {
         Active tokens
       </p>
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <LoadingState size="sm" label="Loading tokens…" className="py-4" />
       ) : active.length === 0 ? (
         <p className="text-xs text-muted-foreground">No active tokens yet.</p>
       ) : (

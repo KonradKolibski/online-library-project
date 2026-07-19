@@ -13,6 +13,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { DocsPage } from "@/pages/DocsPage";
 import { AuthPage } from "@/pages/AuthPage";
 import { Blobs } from "@/components/illustrations/Blobs";
+import { LoadingState } from "@/components/ui/loading-state";
 import { PurchaseReturnHandler } from "@/components/progress/PurchaseReturnHandler";
 import { Onboarding, hasOnboarded } from "@/components/onboarding/Onboarding";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -123,16 +124,25 @@ function ConfigError() {
   );
 }
 
+/**
+ * Minimum time the boot splash stays up. Auth often resolves in a few hundred
+ * ms (or instantly from a cached session), so without a floor the animation
+ * would just flash. Keep it short — this delays every visit.
+ */
+const MIN_SPLASH_MS = 1200;
+
 function AppRouter() {
-  if (!isSupabaseConfigured) return <ConfigError />;
+  // Hooks first: they must run on every render, before any early return.
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
-        Loading…
-      </div>
-    );
-  }
+  const [splashElapsed, setSplashElapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isSupabaseConfigured) return <ConfigError />;
+  if (loading || !splashElapsed) return <LoadingState fullScreen size="lg" />;
   if (!user) return <AuthPage />;
   return <AuthedApp />;
 }
